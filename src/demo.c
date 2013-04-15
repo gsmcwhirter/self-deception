@@ -16,11 +16,12 @@
 #define STATES 2
 // 3
 #define MESSAGES 2
-#define MAX_PAYOUT 1 
+#define MAX_PAYOUT 1.0 
 #define INSPECT_COST 0.5
 #define INSPECT_PROB 0.75
 #define ALPHA 0
-#define EFFECTIVE_ZERO 0.000000008
+#define EFFECTIVE_ZERO 0.00000008
+#define MAX_GENERATIONS 0
 #define GEN_REPORT_INTERVAL 1
 //9
 #define GEN_REPORT_PER_ROW 8
@@ -113,6 +114,38 @@ game_payoffs(int players, int *profile)
 }
 
 void
+describe_strategy(char *prefix, int player, int strategy)
+{
+    int i, j;
+    switch (player){
+        case 0: //unconscious
+            for (i = 0; i < STATES; i++){
+                printf("%s%i->%i\n", prefix, i, base_n_bit(STATES, strategy, i));
+            }
+            break;
+        case 1: //conscious
+            for (j = 0; j < SITUATIONS; j++){
+                printf("%sSituation %i:\n", prefix, j);
+                for (i = 0; i < STATES; i++){
+                    printf("%s  %i->%i\n", prefix, i, base_n_bit(MESSAGES, strategy, j * STATES + i));
+                }
+            }
+            break;
+        case 2: //receiver
+            for (j = 0; j < SITUATIONS; j++){
+                printf("%sSituation %i:\n", prefix, j);
+                for (i = 0; i < MESSAGES; i++){
+                    printf("%s  %i->%i\n", prefix, i, base_n_bit(STATES + 1, strategy, j * MESSAGES + i));
+                }
+            }
+            break;
+        default: //how did we get here?
+            assert(0);
+            break;
+    }
+}
+
+void
 report_populations(char *prefix, popcollection_t *popc)
 {
     int i, j, k, mod;
@@ -154,9 +187,32 @@ generation_report(game_t *game, int generation, popcollection_t *popc)
     }
 }
 
+void
+final_report(game_t *game, popcollection_t *final_pop, double effective_zero)
+{
+    UNUSED(game);
+    char *prefix = "\t  ";
+    int i, j;
+    population_t *pop;
+    
+    for (i = 0; i < final_pop->size; i++){
+        pop = *(final_pop->populations + i);
+        printf("Population %i:\n", i);
+        for (j = 0; j < pop->size; j++){
+            if (*(pop->proportions + j) > effective_zero){
+                printf("\tStrategy %i (%e):\n", j, *(pop->proportions + j));
+                describe_strategy(prefix, i, j);
+            }
+        }
+    }
+}
+
 int 
 main(int argc, char *argv[])
 {
+    UNUSED(argc);
+    UNUSED(argv);
+
     int *strategies = malloc(sizeof(int) * 3);
     // For the unconscious
     *(strategies + 0) = pow(STATES, STATES);
@@ -167,6 +223,23 @@ main(int argc, char *argv[])
     
     int i;
     
+    double alpha = ALPHA;
+    double effective_zero = EFFECTIVE_ZERO;
+    int max_gens = MAX_GENERATIONS;
+    
+    printf("Procedure:\n");
+    printf("\t1. Nature chooses a Situation.\n");
+    printf("\t2. Nature chooses a State of the World.\n");
+    printf("\t3a. The Unconscious observes the State but not Situation.\n");
+    printf("\t3b. The Unconscious Represents the State to the Conscious.\n");
+    printf("\t4a. The Conscious observes the Representation and the Situation, but not the actual State.\n");
+    printf("\t4b. The Conscious sends a Message to the Receiver.\n");
+    printf("\t5a. The Receiver observes the Message and the Situation, but not the Representation or State.\n");
+    printf("\t5b. The Receiver elects to Inspect the Representation at a cost, or not.\n");
+    printf("\t5c. If the receiver chooses Inspect, then with some probability learns the actual Representation, otherwise a random Representation.\n");
+    printf("\t5d. The Receiver selects an Action, strategically without Inspecting the Representation, or best-response when Inspecting.\n");
+    printf("\t6. Payoffs are determined by the State, Action, and Inspect parameters.\n");
+    printf("\n");
     printf("Situation types: %i\n", SITUATIONS);
     printf("\tProbabilities:");
     for (i = 0; i < SITUATIONS; i++){
@@ -184,18 +257,12 @@ main(int argc, char *argv[])
     printf("Strategies for the Unconscious: %i\n", *(strategies + 0));
     printf("Strategies for the Conscious: %i\n", *(strategies + 1));
     printf("Strategies for the Receiver: %i\n", *(strategies + 2));
-    printf("Procedure:\n");
-    printf("\t1. Nature chooses a Situation.\n");
-    printf("\t2. Nature chooses a State of the World.\n");
-    printf("\t3a. The Unconscious observes the State but not Situation.\n");
-    printf("\t3b. The Unconscious Represents the State to the Conscious.\n");
-    printf("\t4a. The Conscious observes the Representation and the Situation, but not the actual State.\n");
-    printf("\t4b. The Conscious sends a Message to the Receiver.\n");
-    printf("\t5a. The Receiver observes the Message and the Situation, but not the Representation or State.\n");
-    printf("\t5b. The Receiver elects to Inspect the Representation at a cost, or not.\n");
-    printf("\t5c. If the receiver chooses Inspect, then with some probability, she learns the actual Representation, and otherwise a random possible Representation.\n");
-    printf("\t5d. The Receiver selects an Action, strategically without Inspecting the Representation, or best-response when Inspecting.\n");
-    printf("\t6. Payoffs are determined by the State, Action, and Inspect parameters.\n");
+    printf("Effective Zero: %e\n", effective_zero);
+    printf("Probability of Inspect Success: %e\n", INSPECT_PROB);
+    printf("Cost of Inspecting: %e\n", INSPECT_COST);
+    printf("Payoff for Success: %f\n", MAX_PAYOUT);
+    printf("Alpha value: %e\n", alpha);
+    printf("Max Generations: %i\n", max_gens);
     printf("\n");
     
     char *prefix = "\t";
@@ -206,15 +273,14 @@ main(int argc, char *argv[])
     report_populations(prefix, start_pop);
     printf("\n");
     
-    double alpha = 0.0;
-    double effective_zero = 0.00000008;
-    int max_gens = 0;
     printf("Starting simulations...\n");
     popcollection_t *final_pop = replicator_dynamics(game, start_pop, alpha, effective_zero, max_gens, generation_report);
     printf("Done simulations.\n");
     printf("Final Populations:\n");
     report_populations("\t", final_pop);
     printf("\n");
+    
+    final_report(game, final_pop, effective_zero);
 
     free(strategies);
     Game_destroy(game);

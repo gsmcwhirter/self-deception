@@ -37,6 +37,7 @@ base_n_bit(const int base, const int number, const int bit)
     return (number / (int)pow(base, bit)) % base;
 }
 
+/* Not the right way for replicator expectations
 int
 get_real_action(int action, int repr)
 {
@@ -56,13 +57,14 @@ get_real_action(int action, int repr)
         return action;
     }
 }
+*/
 
 double * 
 game_payoffs(int players, int *profile)
 {
     double *payoffs = malloc(players * sizeof(double));
     double prob;
-    int i, sit, state, representation, message, action, real_action, inspect, sender_desired_act;
+    int i, sit, state, representation, message, action, /*real_action,*/ inspect, sender_desired_act;
     
     for (i = 0; i < players; i++){
         *(payoffs + i) = 0;
@@ -75,37 +77,63 @@ game_payoffs(int players, int *profile)
             representation = base_n_bit(STATES, *(profile + 0), state);
             message = base_n_bit(MESSAGES, *(profile + 1), sit * STATES + representation);
             action = base_n_bit(STATES + 1, *(profile + 2), sit * MESSAGES + message);
-            real_action = get_real_action(action, representation);
+            //real_action = get_real_action(action, representation);
             
             if (action == STATES){
                 inspect = 1;
+                switch (sit){
+                    case 0: //pure common interest
+                        *(payoffs + 0) += prob * (INSPECT_PROB * ((representation == state) ? 1.0 : 0.0) + (1 - INSPECT_PROB) * state_probs[state]) * MAX_PAYOUT; 
+                        *(payoffs + 1) += prob * (INSPECT_PROB * ((representation == state) ? 1.0 : 0.0) + (1 - INSPECT_PROB) * state_probs[state]) * MAX_PAYOUT;
+                        *(payoffs + 2) += prob * ((INSPECT_PROB * ((representation == state) ? 1.0 : 0.0) + (1 - INSPECT_PROB) * state_probs[state]) * MAX_PAYOUT - inspect * INSPECT_COST));
+                        break;
+                    case 1: //minimal divergent interest
+                        if (state > 1){ // common interest on all but the first 2 states
+                            *(payoffs + 0) += prob * (INSPECT_PROB * ((representation == state) ? 1.0 : 0.0) + (1 - INSPECT_PROB) * state_probs[state]) * MAX_PAYOUT; 
+                            *(payoffs + 1) += prob * (INSPECT_PROB * ((representation == state) ? 1.0 : 0.0) + (1 - INSPECT_PROB) * state_probs[state]) * MAX_PAYOUT;
+                            *(payoffs + 2) += prob * ((INSPECT_PROB * ((representation == state) ? 1.0 : 0.0) + (1 - INSPECT_PROB) * state_probs[state]) * MAX_PAYOUT - inspect * INSPECT_COST));
+                        }
+                        else { //totally divergent interest in the first two states
+                            sender_desired_act = 1 - state;
+                            *(payoffs + 0) += prob * (INSPECT_PROB * ((representation == sender_desired_act) ? 1.0 : 0.0) + (1 - INSPECT_PROB) * state_probs[sender_desired_act]) * MAX_PAYOUT; 
+                            *(payoffs + 1) += prob * (INSPECT_PROB * ((representation == sender_desired_act) ? 1.0 : 0.0) + (1 - INSPECT_PROB) * state_probs[sender_desired_act]) * MAX_PAYOUT;
+                            *(payoffs + 2) += prob * ((INSPECT_PROB * ((representation == state) ? 1.0 : 0.0) + (1 - INSPECT_PROB) * state_probs[state]) * MAX_PAYOUT - inspect * INSPECT_COST));
+                        }
+                        break;
+                    default: //how did we get here?
+                        assert(0);
+                        break;
+                }
             } 
-            else {
+            else if (action < STATES){
                 inspect = 0;
+                switch (sit){
+                    case 0: //pure common interest
+                        *(payoffs + 0) += prob * ((action == state) ? MAX_PAYOUT : 0); 
+                        *(payoffs + 1) += prob * ((action == state) ? MAX_PAYOUT : 0);
+                        *(payoffs + 2) += prob * ((action == state) ? MAX_PAYOUT : 0);
+                        break;
+                    case 1: //minimal divergent interest
+                        if (state > 1){ // common interest on all but the first 2 states
+                            *(payoffs + 0) += prob * ((action == state) ? MAX_PAYOUT : 0); 
+                            *(payoffs + 1) += prob * ((action == state) ? MAX_PAYOUT : 0);
+                            *(payoffs + 2) += prob * ((action == state) ? MAX_PAYOUT : 0);
+                        }
+                        else { //totally divergent interest in the first two states
+                            sender_desired_act = 1 - state;
+                            *(payoffs + 0) += prob * ((action == sender_desired_act) ? MAX_PAYOUT : 0); 
+                            *(payoffs + 1) += prob * ((action == sender_desired_act) ? MAX_PAYOUT : 0);
+                            *(payoffs + 2) += prob * ((action == state) ? MAX_PAYOUT : 0);
+                        }
+                        break;
+                    default: //how did we get here?
+                        assert(0);
+                        break;
+                }
             }
-            
-            switch (sit){
-                case 0: //pure common interest
-                    *(payoffs + 0) += prob * ((real_action == state) ? MAX_PAYOUT : 0); 
-                    *(payoffs + 1) += prob * ((real_action == state) ? MAX_PAYOUT : 0);
-                    *(payoffs + 2) += prob * (((real_action == state) ? MAX_PAYOUT : 0) - inspect * INSPECT_COST);
-                    break;
-                case 1: //minimal divergent interest
-                    if (state > 1){ // common interest on all but the first 2 states
-                        *(payoffs + 0) += prob * ((real_action == state) ? MAX_PAYOUT : 0); 
-                        *(payoffs + 1) += prob * ((real_action == state) ? MAX_PAYOUT : 0);
-                        *(payoffs + 2) += prob * (((real_action == state) ? MAX_PAYOUT : 0) - inspect * INSPECT_COST);
-                    }
-                    else { //totally divergent interest in the first two states
-                        sender_desired_act = 1 - state;
-                        *(payoffs + 0) += prob * ((real_action == sender_desired_act) ? MAX_PAYOUT : 0); 
-                        *(payoffs + 1) += prob * ((real_action == sender_desired_act) ? MAX_PAYOUT : 0);
-                        *(payoffs + 2) += prob * (((real_action == state) ? MAX_PAYOUT : 0) - inspect * INSPECT_COST);
-                    }
-                    break;
-                default: //how did we get here?
-                    assert(0);
-                    break;
+            else {
+                //how did this happen?
+                assert(0);
             }
         }
     }

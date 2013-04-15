@@ -5,11 +5,14 @@ PREFIX?=/usr/local
 SOURCES=$(wildcard src/**/*.c src/*.c deps/*.c)
 OBJECTS=$(patsubst %.c,%.o,$(SOURCES))
 HEADERS=$(wildcard include/**/*.h include/*.h deps/*.h)
+DEMOSOURCES=$(wildcard src/demo.c deps/*.c)
+DEMOOBJECTS=$(patsubst %.c,%.o,$(DEMOSOURCES))
 
 TEST_SRC=$(wildcard tests/*_tests.c)
 TESTS=$(patsubst %.c,%,$(TEST_SRC))
 
 TARGET=build/self_deception_sim
+DEMOTARGET=build/self_deception_demo
 
 # The Target Build
 all: $(TARGET)
@@ -20,6 +23,16 @@ dev: all
 $(TARGET): CFLAGS += -fPIC
 $(TARGET): build $(OBJECTS)
 	$(CC) $(CFLAGS) $(OBJECTS) $(LFLAGS) -o $@ 
+	
+$(DEMOTARGET): CFLAGS += -fPIC
+$(DEMOTARGET): build $(DEMOOBJECTS)
+	$(CC) $(CFLAGS) $(DEMOOBJECTS) $(LFLAGS) -o $@
+	
+demo: $(DEMOTARGET)
+	$(DEMOTARGET)
+	
+demov: $(DEMOTARGET)
+	valgrind $(DEMOTARGET)
 
 build:
 	@mkdir -p build
@@ -28,7 +41,7 @@ $(TESTS):
 	$(CC) $(CFLAGS) $@.c $(LFLAGS) -o $@ 
 
 # The Unit Tests
-.PHONY: tests
+.PHONY: test demo demov
 test: LFLAGS += -Lbuild -lreplicator_simulations
 test: $(TESTS)
 	sh ./tests/runtests.sh

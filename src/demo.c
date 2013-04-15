@@ -12,17 +12,21 @@
 
 #define UNUSED(x) (void)(x)
 #define SITUATIONS 2
-#define STATES 3
-#define MESSAGES 3
+// 3
+#define STATES 2
+// 3
+#define MESSAGES 2
 #define MAX_PAYOUT 1 
 #define INSPECT_COST 0.5
 #define INSPECT_PROB 0.75
 #define ALPHA 0
 #define EFFECTIVE_ZERO 0.000000008
-#define GEN_REPORT_INTERVAL 10
-#define GEN_REPORT_PER_ROW 9
+#define GEN_REPORT_INTERVAL 1
+//9
+#define GEN_REPORT_PER_ROW 8
 
-const double state_probs[STATES] = {1.0/3.0, 1.0/3.0, 1.0/3.0};
+//thirds
+const double state_probs[STATES] = {0.5, 0.5};
 const double sit_probs[SITUATIONS] = {0.5, 0.5};
 
 // Gets the value of the bit-th bit (counting from 0) of the number in the given base (3 for my purposes)
@@ -202,7 +206,11 @@ main(int argc, char *argv[])
     report_populations(prefix, start_pop);
     printf("\n");
     
-    popcollection_t *final_pop = replicator_dynamics(game, start_pop, ALPHA, EFFECTIVE_ZERO, 0, generation_report);
+    double alpha = 0.0;
+    double effective_zero = 0.00000008;
+    int max_gens = 0;
+    printf("Starting simulations...\n");
+    popcollection_t *final_pop = replicator_dynamics(game, start_pop, alpha, effective_zero, max_gens, generation_report);
     printf("Done simulations.\n");
     printf("Final Populations:\n");
     report_populations("\t", final_pop);

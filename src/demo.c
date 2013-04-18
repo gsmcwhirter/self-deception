@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include <replicator_dynamics/randomkit.h>
+//#include <replicator_dynamics/randomkit.h>
 #include <replicator_dynamics/replicator_population.h>
 #include <replicator_dynamics/replicator_game.h>
 #include <replicator_dynamics/replicator_simulation.h>
@@ -19,7 +19,7 @@
 #define MAX_PAYOUT 1.0 
 #define INSPECT_COST 0.5
 #define INSPECT_PROB 0.75
-#define ALPHA 0
+#define ALPHA 0.0
 #define EFFECTIVE_ZERO 0.00000008
 #define MAX_GENERATIONS 0
 #define GEN_REPORT_INTERVAL 1
@@ -85,19 +85,19 @@ game_payoffs(int players, int *profile)
                     case 0: //pure common interest
                         *(payoffs + 0) += prob * (INSPECT_PROB * ((representation == state) ? 1.0 : 0.0) + (1 - INSPECT_PROB) * state_probs[state]) * MAX_PAYOUT; 
                         *(payoffs + 1) += prob * (INSPECT_PROB * ((representation == state) ? 1.0 : 0.0) + (1 - INSPECT_PROB) * state_probs[state]) * MAX_PAYOUT;
-                        *(payoffs + 2) += prob * ((INSPECT_PROB * ((representation == state) ? 1.0 : 0.0) + (1 - INSPECT_PROB) * state_probs[state]) * MAX_PAYOUT - inspect * INSPECT_COST));
+                        *(payoffs + 2) += prob * ((INSPECT_PROB * ((representation == state) ? 1.0 : 0.0) + (1 - INSPECT_PROB) * state_probs[state]) * MAX_PAYOUT - inspect * INSPECT_COST);
                         break;
                     case 1: //minimal divergent interest
                         if (state > 1){ // common interest on all but the first 2 states
                             *(payoffs + 0) += prob * (INSPECT_PROB * ((representation == state) ? 1.0 : 0.0) + (1 - INSPECT_PROB) * state_probs[state]) * MAX_PAYOUT; 
                             *(payoffs + 1) += prob * (INSPECT_PROB * ((representation == state) ? 1.0 : 0.0) + (1 - INSPECT_PROB) * state_probs[state]) * MAX_PAYOUT;
-                            *(payoffs + 2) += prob * ((INSPECT_PROB * ((representation == state) ? 1.0 : 0.0) + (1 - INSPECT_PROB) * state_probs[state]) * MAX_PAYOUT - inspect * INSPECT_COST));
+                            *(payoffs + 2) += prob * ((INSPECT_PROB * ((representation == state) ? 1.0 : 0.0) + (1 - INSPECT_PROB) * state_probs[state]) * MAX_PAYOUT - inspect * INSPECT_COST);
                         }
                         else { //totally divergent interest in the first two states
                             sender_desired_act = 1 - state;
                             *(payoffs + 0) += prob * (INSPECT_PROB * ((representation == sender_desired_act) ? 1.0 : 0.0) + (1 - INSPECT_PROB) * state_probs[sender_desired_act]) * MAX_PAYOUT; 
                             *(payoffs + 1) += prob * (INSPECT_PROB * ((representation == sender_desired_act) ? 1.0 : 0.0) + (1 - INSPECT_PROB) * state_probs[sender_desired_act]) * MAX_PAYOUT;
-                            *(payoffs + 2) += prob * ((INSPECT_PROB * ((representation == state) ? 1.0 : 0.0) + (1 - INSPECT_PROB) * state_probs[state]) * MAX_PAYOUT - inspect * INSPECT_COST));
+                            *(payoffs + 2) += prob * ((INSPECT_PROB * ((representation == state) ? 1.0 : 0.0) + (1 - INSPECT_PROB) * state_probs[state]) * MAX_PAYOUT - inspect * INSPECT_COST);
                         }
                         break;
                     default: //how did we get here?

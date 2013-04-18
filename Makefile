@@ -1,5 +1,5 @@
 CFLAGS=-g -O2 -Wall -Wextra -Iinclude -Ideps -rdynamic -DNDEBUG $(OPTFLAGS)
-LFLAGS=-Llib -lm -lreplicator_simulations -lsaneopt -lgomp $(OPTLIBS)
+LFLAGS=-Llib -lm -lreplicator_simulations -lsaneopt $(OPTLIBS)
 PREFIX?=/usr/local
 
 SOURCES=$(wildcard src/**/*.c src/*.c deps/*.c)

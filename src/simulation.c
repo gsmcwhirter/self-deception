@@ -32,6 +32,9 @@
 const double state_probs[STATES] = {0.5, 0.5};
 const double sit_probs[SITUATIONS] = {0.5, 0.5};
 
+extern int simulation_num_procs;
+extern int simulation_max_threads;
+
 // Gets the value of the bit-th bit (counting from 0) of the number in the given base (3 for my purposes)
 int 
 base_n_bit(const int base, const int number, const int bit)
@@ -306,6 +309,11 @@ main(int argc, char *argv[])
     double mb;
     mb = kb / 1024.0;
     printf("Caching Memory Estimate (MB): %f\n", mb);
+    printf("\n");
+    
+    replicator_dynamics_setup();
+    printf("Number of Processors: %i\n", simulation_num_procs);
+    printf("Maximum Threads: %i\n", simulation_max_threads);
     printf("\n");
     
     char *prefix = "\t";

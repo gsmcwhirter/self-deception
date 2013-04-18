@@ -329,8 +329,8 @@ main(int argc, char *argv[])
     final_report(game, final_pop, effective_zero);
 
     free(strategies);
-    Game_destroy(game);
     PopCollection_destroy(start_pop);
     PopCollection_destroy(final_pop);
+    Game_destroy(game);
     return 0;
 }

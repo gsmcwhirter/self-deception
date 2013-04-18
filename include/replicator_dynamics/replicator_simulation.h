@@ -1,26 +1,15 @@
 #ifndef REPLICATOR_SIM_H
 #define REPLICATOR_SIM_H
 
-struct StrategyProfiles;
-struct Game;
-struct PopCollection;
-struct Population;
+#include "replicator_dynamics/replicator_population.h"
+#include "replicator_dynamics/replicator_game.h"
 
-struct PayoffCache {
-	int count;
-	double **payoff_cache;
-};
 
-typedef struct PayoffCache payoffcache_t;
+typedef void (*cb_func)(game_t *game, int generation, popcollection_t *generation_pop);
 
-payoffcache_t * PayoffCache_create(struct Game *game, struct StrategyProfiles *profiles);
-void PayoffCache_destroy(payoffcache_t *cache);
-
-typedef void (*cb_func)(struct Game *game, int generation, struct PopCollection *generation_pop);
-
-struct PopCollection * replicator_dynamics(struct Game *game, struct PopCollection *start_pops, double alpha, double effective_zero, int max_generations, cb_func on_generation);
-double earned_payoff(int player, int strategy, struct PopCollection *pops, struct StrategyProfiles *profiles, payoffcache_t *payoff_cache);
-double average_earned_payoff(int player, struct PopCollection *pops, struct StrategyProfiles *profiles, payoffcache_t *payoff_cache);
-void update_population_proportions(double alpha, int player, struct Population *pop, struct PopCollection *curr_pops, struct StrategyProfiles *profiles, payoffcache_t *payoff_cache);
+popcollection_t * replicator_dynamics(game_t *game, popcollection_t *start_pops, double alpha, double effective_zero, int max_generations, cache_mask caching, cb_func on_generation);
+double earned_payoff(int player, int strategy, popcollection_t *pops, strategyprofiles_t *profiles, payoffcache_t *payoff_cache);
+double average_earned_payoff(int player, popcollection_t *pops, strategyprofiles_t *profiles, payoffcache_t *payoff_cache);
+void update_population_proportions(double alpha, int player, population_t *pop, popcollection_t *curr_pops, strategyprofiles_t *profiles, payoffcache_t *payoff_cache);
 
 #endif

@@ -13,7 +13,7 @@ TARGET1=build/replicator_sim
 TARGET2=build/urnlearning_sim
 
 # The Target Build
-all: $(TARGET)
+all: $(TARGET1) $(TARGET2)
 
 dev: CFLAGS=-g -Wall -Wextra -Iinclude -rdynamic $(OPTFLAGS)
 dev: all

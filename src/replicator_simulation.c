@@ -55,7 +55,7 @@ get_real_action(int action, int repr)
             return repr;
         }
         else {
-            return (int)rk_interval(STATES, &rand_state);
+            return (int)rk_interval(STATES - 1, &rand_state); // -1 b/c inclusive
         }
     }
     else {

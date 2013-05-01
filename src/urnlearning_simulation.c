@@ -15,7 +15,7 @@
 #define MAX_PAYOFF 1.0
 #define INSPECT_PROB 0.85
 #define INSPECT_COST 0.25
-#define NUM_GENERATIONS 300000000
+#define NUM_GENERATIONS 1000000
 
 rk_state rand_state;
 int rk_state_set = 0;
@@ -300,6 +300,8 @@ main(int argc, char *argv[])
     }
     free(types);
     free(initial_counts);
+    free(urn_counts);
+    UrnGame_destroy(game);
     
     return 0;
 }

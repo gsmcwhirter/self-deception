@@ -6,9 +6,9 @@
 #include <math.h>
 
 //#include <replicator_dynamics/randomkit.h>
-#include <replicator_dynamics/replicator_population.h>
-#include <replicator_dynamics/replicator_game.h>
-#include <replicator_dynamics/replicator_simulation.h>
+#include <simulations/replicator_population.h>
+#include <simulations/replicator_game.h>
+#include <simulations/replicator_simulation.h>
 
 #define UNUSED(x) (void)(x)
 #define SITUATIONS 2

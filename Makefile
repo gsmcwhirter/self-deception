@@ -1,18 +1,16 @@
 CFLAGS=-g -O2 -Wall -Wextra -Iinclude -Ideps -rdynamic -DNDEBUG $(OPTFLAGS)
-LFLAGS=-Llib -lm -lreplicator_simulations -lsaneopt $(OPTLIBS)
-PREFIX?=/usr/local
+LFLAGS=-Llib -lm -lurnlearning $(OPTLIBS) #-lsaneopt
 
-SOURCES=$(wildcard src/**/*.c src/*.c deps/*.c)
-OBJECTS=$(patsubst %.c,%.o,$(SOURCES))
-HEADERS=$(wildcard include/**/*.h include/*.h deps/*.h)
-#DEMOSOURCES=$(wildcard src/demo.c deps/*.c)
-#DEMOOBJECTS=$(patsubst %.c,%.o,$(DEMOSOURCES))
+SOURCES1=$(wildcard src/replicator_*.c deps/*.c)
+OBJECTS1=$(patsubst %.c,%.o,$(SOURCES1))
+SOURCES2=$(wildcard src/urnlearning_*.c deps/*.c)
+OBJECTS2=$(patsubst %.c,%.o,$(SOURCES2))
 
 TEST_SRC=$(wildcard tests/*_tests.c)
 TESTS=$(patsubst %.c,%,$(TEST_SRC))
 
-TARGET=build/self_deception_sim
-#DEMOTARGET=build/self_deception_demo
+TARGET1=build/replicator_sim
+TARGET2=build/urnlearning_sim
 
 # The Target Build
 all: $(TARGET)
@@ -20,20 +18,15 @@ all: $(TARGET)
 dev: CFLAGS=-g -Wall -Wextra -Iinclude -rdynamic $(OPTFLAGS)
 dev: all
 
-$(TARGET): CFLAGS += -fPIC
-$(TARGET): build $(OBJECTS)
-	$(CC) $(CFLAGS) $(OBJECTS) $(LFLAGS) -o $@ 
-	
-#$(DEMOTARGET): CFLAGS += -fPIC
-#$(DEMOTARGET): build $(DEMOOBJECTS)
-#	$(CC) $(CFLAGS) $(DEMOOBJECTS) $(LFLAGS) -o $@
-	
-#demo: $(DEMOTARGET)
-#	$(DEMOTARGET)
-	
-#demov: $(DEMOTARGET)
-#	valgrind $(DEMOTARGET)
+$(TARGET1) $(TARGET2): CFLAGS += -fPIC
+$(TARGET1): LFLAGS += -lreplicator
+$(TARGET1): build $(OBJECTS1)
+	$(CC) $(CFLAGS) $(OBJECTS1) $(LFLAGS) -o $@ 
 
+$(TARGET2): LFLAGS += -lurnlearning	
+$(TARGET2): build $(OBJECTS2)
+	$(CC) $(CFLAGS) $(OBJECTS2) $(LFLAGS) -o $@
+	
 build:
 	@mkdir -p build
 
@@ -43,35 +36,20 @@ $(TESTS):
 # The Unit Tests
 #.PHONY: test demo demov
 .PHONY: test
-test: LFLAGS += -Lbuild -lreplicator_simulations
+test: LFLAGS += -Lbuild -lreplicator -lurnlearning
 test: $(TESTS)
 	sh ./tests/runtests.sh
 	
 # The Cleaner
 clean:
-	rm -rf build dist $(OBJECTS) $(TESTS) dist/$(DIST_NAME).tar.gz
+	rm -rf build dist $(OBJECTS1) $(OBJECTS2) $(TESTS)
 	rm -f tests/tests.log
 	find . -name "*.gc*" -exec rm {} \;
 	rm -rf `find . -name "*.dSYM" -print`
-
-# The Install
-#install: all
-#	install -d $(PREFIX)/lib/
-#	install -d $(PREFIX)/include/replicator_dynamics/
-#	install $(TARGET) $(PREFIX)/lib/
-#	install $(SO_TARGET) $(PREFIX)/lib/
-#	install $(HEADERS) $(PREFIX)/include/replicator_dynamics/
 
 # The Checker
 BADFUNCS='[^_.>a-zA-Z0-9](str(n?cpy|n?cat|xfrm|n?dup|str|pbrk|tok|_)|stpn?cpy|a?sn?printf|byte_)'
 check:
 	@echo Files with potentially dangerous functions?
-	@egrep $(BADFUNCS) $(SOURCES) || true
+	@egrep $(BADFUNCS) $(SOURCES1) $(SOURCES2) || true
 
-# The Packager
-#dist: all
-#	@mkdir -p dist/$(DIST_NAME)
-#	cp $(TARGET) dist/$(DIST_NAME)
-#	cp $(SO_TARGET) dist/$(DIST_NAME)
-#	cp -r include dist/$(DIST_NAME)
-#	tar czvfC dist/$(DIST_NAME).tar.gz dist $(DIST_NAME)

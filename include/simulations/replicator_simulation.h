@@ -1,8 +1,8 @@
 #ifndef REPLICATOR_SIM_H
 #define REPLICATOR_SIM_H
 
-#include "replicator_dynamics/replicator_population.h"
-#include "replicator_dynamics/replicator_game.h"
+#include "simulations/replicator_population.h"
+#include "simulations/replicator_game.h"
 
 
 typedef void (*cb_func)(game_t *game, int generation, popcollection_t *generation_pop);

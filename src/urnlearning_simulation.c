@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <errno.h>
+#include <inttypes.h>
 
 #include <simulations/urnlearning_urns.h>
 #include <simulations/urnlearning_game.h>

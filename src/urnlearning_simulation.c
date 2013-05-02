@@ -120,9 +120,7 @@ payoffs(unsigned int players, unsigned int **types, unsigned int * state_action_
             break;
     }
     
-    #ifdef NDEBUG
-    if (be_verbose){
-    #endif
+    #ifndef NDEBUG
     printf("Payoffs:\n");
     for (i = 0; i < players; i++){
         if (i == 0){
@@ -137,8 +135,6 @@ payoffs(unsigned int players, unsigned int **types, unsigned int * state_action_
         }
         
         printf("\n");
-    }
-    #ifdef NDEBUG
     }
     #endif
     
@@ -188,16 +184,12 @@ urnlearning_interaction(unsigned int players, urncollection_t **player_urns, rk_
         
     }
     
-    #ifdef NDEBUG
-    if (be_verbose){
-    #endif
+    #ifndef NDEBUG
     printf("Interaction:\n");
     printf("  Situation: %i\n", situation);
     printf("  State: %i\n", state);
     printf("  Actions:");
     printf("  %i  %i  %i\n", *(state_action_profile + 0) - situation * STATES, *(state_action_profile + 1) - situation * MESSAGES, *(state_action_profile + 2));
-    #ifdef NDEBUG
-    }
     #endif
     
     *(state_action_profile + players) = state;
@@ -384,16 +376,22 @@ main(int argc, char *argv[])
     #ifdef NDEBUG
     if (be_verbose){
     #endif
-    printf("Number of threads: %li", threads);
+    printf("Number of threads: %li\n", threads);
     #ifdef NDEBUG
     }
     #endif    
     
-    #pragma omp parallel
-    {
-    #pragma omp for   
+    #pragma omp parallel for
 #endif
     for (dup = 0; dup < duplications; dup++){
+        #ifdef NDEBUG
+        if (be_verbose){
+        #endif
+        printf("Starting duplication %lu...\n", dup);
+        #ifdef NDEBUG
+        }
+        #endif
+    
         int64_t dup_start_time = timestamp(); 
         urngame_t *gamedup = UrnGame_clone(game);
     
@@ -429,10 +427,15 @@ main(int argc, char *argv[])
         if (dump_to_files){
             fclose(outfile);
         }
+        
+        #ifdef NDEBUG
+        if (be_verbose){
+        #endif
+        printf("Done duplication %lu.\n", dup);
+        #ifdef NDEBUG
+        }
+        #endif
     }
-#ifdef _OPENMP
-    }
-#endif
     
     for (i = 0; i < num_players; i++){
         free(*(types + i));
@@ -450,7 +453,7 @@ main(int argc, char *argv[])
     #ifdef NDEBUG
     if (be_verbose){
     #endif
-    printf("Total time: %" PRId64 "\n", timestamp() - start_time);
+    printf("Total time: %" PRId64 " ms\n", timestamp() - start_time);
     #ifdef NDEBUG
     }
     #endif

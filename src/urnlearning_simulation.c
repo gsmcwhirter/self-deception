@@ -320,6 +320,7 @@ main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
     unsigned int i, j, k;
+    unsigned long dup;
 
     for (i = 0; i < num_players; i++){
         *(types + i) = malloc(*(urn_counts + i) * sizeof(unsigned int));
@@ -392,17 +393,17 @@ main(int argc, char *argv[])
     {
     #pragma omp for   
 #endif
-    for (i = 0; i < duplications; i++){
+    for (dup = 0; dup < duplications; dup++){
         int64_t dup_start_time = timestamp(); 
         urngame_t *gamedup = UrnGame_clone(game);
     
         FILE *outfile = NULL;
         char *filename;
-        int filename_size = numDigits(i + 1) + 17; //17 is the length of "duplication_.out" plus the terminating null
+        int filename_size = numDigits(dup + 1) + 17; //17 is the length of "duplication_.out" plus the terminating null
         
         if (dump_to_files){
             filename = malloc(filename_size * sizeof(char));
-            snprintf(filename, filename_size, "duplication_%u.out", i + 1);
+            snprintf(filename, filename_size, "duplication_%lu.out", dup + 1);
             outfile = fopen(filename, "w");
             free(filename);
         }

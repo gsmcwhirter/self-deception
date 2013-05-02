@@ -387,7 +387,7 @@ main(int argc, char *argv[])
         #ifdef NDEBUG
         if (be_verbose){
         #endif
-        printf("Starting duplication %lu...\n", dup);
+        printf("Starting duplication %lu...\n", dup + 1);
         #ifdef NDEBUG
         }
         #endif
@@ -431,7 +431,7 @@ main(int argc, char *argv[])
         #ifdef NDEBUG
         if (be_verbose){
         #endif
-        printf("Done duplication %lu.\n", dup);
+        printf("Done duplication %lu.\n", dup + 1);
         #ifdef NDEBUG
         }
         #endif

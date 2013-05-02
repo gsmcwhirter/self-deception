@@ -422,7 +422,7 @@ main(int argc, char *argv[])
         
         UrnGame_destroy(gamedup);
         
-        fprintf(outfile, "\nTime taken: %li ms\n", timestamp() - dup_start_time);
+        fprintf(outfile, "\nTime taken: %" PRId64 " ms\n", timestamp() - dup_start_time);
         
         if (dump_to_files){
             fclose(outfile);
@@ -448,7 +448,7 @@ main(int argc, char *argv[])
     #ifdef NDEBUG
     if (be_verbose){
     #endif
-    printf("Total time: %li\n", timestamp() - start_time);
+    printf("Total time: %" PRId64 "\n", timestamp() - start_time);
     #ifdef NDEBUG
     }
     #endif

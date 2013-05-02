@@ -2,11 +2,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <errno.h>
 
 #include <simulations/urnlearning_urns.h>
 #include <simulations/urnlearning_game.h>
 #include <simulations/urnlearning_simulation.h>
 #include <simulations/randomkit.h>
+
+#include "commander.h"
+#include "timestamp.h"
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 #define UNUSED(x) (void)(x)
 #define SITUATIONS 2
@@ -15,10 +23,14 @@
 #define MAX_PAYOFF 1.0
 #define INSPECT_PROB 0.85
 #define INSPECT_COST 0.25
-#define NUM_GENERATIONS 1000000
 
 rk_state rand_state;
 int rk_state_set = 0;
+int be_verbose = 0;
+int dump_to_files = 0;
+unsigned long duplications = 1;
+long threads = 1;
+unsigned long generations = 1000000;
 
 double ** 
 payoffs(unsigned int players, unsigned int **types, unsigned int * state_action_profile)
@@ -107,7 +119,9 @@ payoffs(unsigned int players, unsigned int **types, unsigned int * state_action_
             break;
     }
     
-    #ifndef NDEBUG
+    #ifdef NDEBUG
+    if (be_verbose){
+    #endif
     printf("Payoffs:\n");
     for (i = 0; i < players; i++){
         if (i == 0){
@@ -123,20 +137,16 @@ payoffs(unsigned int players, unsigned int **types, unsigned int * state_action_
         
         printf("\n");
     }
+    #ifdef NDEBUG
+    }
     #endif
     
     return payoffs;
 }
 
-//unsigned int gen_done = 0;
-
 unsigned int * 
 urnlearning_interaction(unsigned int players, urncollection_t **player_urns, rk_state *rand_state_ptr)
 {   
-    //gen_done++;
-    //printf("\r\r");
-    //printf("Generation %i...\n", gen_done);
-
     assert(player_urns != NULL);
     if (player_urns == NULL){
         exit(EXIT_FAILURE);
@@ -157,11 +167,6 @@ urnlearning_interaction(unsigned int players, urncollection_t **player_urns, rk_
     
     unsigned int last_action = state;
     for (i = 0; i < players; i++){
-        /*
-        printf("situation: %i\n", situation);
-        printf("player: %i\n", i);
-        printf("last action: %i\n", last_action);
-        */
         switch (i){
             case 0:
                 last_action = Urn_randomSelect(*((*(player_urns + i))->urns + last_action), rand_state_ptr);
@@ -182,12 +187,16 @@ urnlearning_interaction(unsigned int players, urncollection_t **player_urns, rk_
         
     }
     
-    #ifndef NDEBUG
+    #ifdef NDEBUG
+    if (be_verbose){
+    #endif
     printf("Interaction:\n");
     printf("  Situation: %i\n", situation);
     printf("  State: %i\n", state);
     printf("  Actions:");
     printf("  %i  %i  %i\n", *(state_action_profile + 0) - situation * STATES, *(state_action_profile + 1) - situation * MESSAGES, *(state_action_profile + 2));
+    #ifdef NDEBUG
+    }
     #endif
     
     *(state_action_profile + players) = state;
@@ -197,25 +206,98 @@ urnlearning_interaction(unsigned int players, urncollection_t **player_urns, rk_
 }
 
 void 
-display_game(urngame_t * game){
+display_game(urngame_t * game, FILE *outfile){
     unsigned int i, j;
+    
+    if (outfile == NULL){
+        outfile = stdout;
+    }
     
     char *prefix = "  ";
     for (i = 0; i < game->num_players; i++){
-        printf("Player %i\n", i);
+        fprintf(outfile, "Player %i\n", i);
         urncollection_t * urncoll = *(game->player_urns + i);
         for (j = 0; j < urncoll->num_urns; j++){
-            Urn_display(*(urncoll->urns + j), prefix);
-            printf("\n");
+            Urn_display(*(urncoll->urns + j), prefix, outfile);
+            fprintf(outfile, "\n");
         }
     }
+}
+
+static void
+handle_verbose(command_t *self)
+{
+    UNUSED(self);
+    be_verbose = 1;
+    printf("verbose output enabled.\n");
+}
+
+static void
+handle_files(command_t *self)
+{
+    UNUSED(self);
+    dump_to_files = 1;
+    
+    if (be_verbose){
+        printf("dumping output to files.\n");
+    }
+}
+
+static void
+handle_duplications(command_t *self)
+{
+    if (self->arg != NULL){
+        errno = 0;
+        duplications = strtoul(self->arg, NULL, 0);
+        if (errno || duplications == 0){
+            printf("Number of duplications is invalid.\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+}
+
+static void
+handle_interactions(command_t *self){
+    if (self->arg != NULL){
+        errno = 0;
+        generations = strtoul(self->arg, NULL, 0);
+        if (errno || generations == 0){
+            printf("Number of interactions is invalid.\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+}
+
+static void
+handle_threads(command_t *self)
+{
+    if (self->arg != NULL){
+        errno = 0;
+        threads = strtol(self->arg, NULL, 0);
+        if (errno || threads == 0){
+            printf("Number of threads is invalid.\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+}
+
+unsigned numDigits(const unsigned n) {
+    if (n < 10) return 1;
+    return 1 + numDigits(n / 10);
 }
 
 int 
 main(int argc, char *argv[])
 {
-    UNUSED(argc);
-    UNUSED(argv);
+    int64_t start_time = timestamp();
+    command_t options;
+    command_init(&options, argv[0], "0.0.1");
+    command_option(&options, "-v", "--verbose", "enable verbose stuff", handle_verbose);
+    command_option(&options, "-f", "--files", "dump output to files", handle_files);
+    command_option(&options, "-i", "--interactions <arg>", "number of interactions to run (default 1000000)", handle_interactions);
+    command_option(&options, "-N", "--duplications <arg>", "number of duplications to run (default 1)", handle_duplications);
+    command_option(&options, "-M", "--threads <arg>", "number of threads to use (openmp, default 1)", handle_threads);
+    command_parse(&options, argc, argv);
     
     unsigned int num_players = 3;
     unsigned int *urn_counts = malloc(num_players * sizeof(unsigned int));
@@ -279,17 +361,76 @@ main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
     
-    printf("\n");
-    display_game(game);
-    printf("\n");
+    printf("Running %lu duplications for %lu interactions...\n", duplications, generations);
     
-    unsigned int generations = NUM_GENERATIONS;
-    printf("Running for %i interactions...\n", generations);
-    urnlearning_dynamics(game, generations, payoffs);
-    printf("done.\n\n");
+#ifdef _OPENMP
+    omp_set_dynamic(0);
+    omp_set_nested(1);
     
-    //reports
-    display_game(game);
+    if (threads < 0){
+        int num_procs = omp_get_num_procs();
+        if (num_procs < 2){
+            threads = 1;
+        }
+        else {
+            threads = num_procs - 1;
+        }
+    }
+    
+    omp_set_num_threads(threads);
+    
+    #ifdef NDEBUG
+    if (be_verbose){
+    #endif
+    printf("Number of threads: %li", threads);
+    #ifdef NDEBUG
+    }
+    #endif    
+    
+    #pragma omp parallel
+    {
+    #pragma omp for   
+#endif
+    for (i = 0; i < duplications; i++){
+        int64_t dup_start_time = timestamp(); 
+        urngame_t *gamedup = UrnGame_clone(game);
+    
+        FILE *outfile = NULL;
+        char *filename;
+        int filename_size = numDigits(i + 1) + 17; //17 is the length of "duplication_.out" plus the terminating null
+        
+        if (dump_to_files){
+            filename = malloc(filename_size * sizeof(char));
+            snprintf(filename, filename_size, "duplication_%u.out", i + 1);
+            outfile = fopen(filename, "w");
+            free(filename);
+        }
+        else {
+            outfile = stdout;
+        }
+        
+        fprintf(outfile, "Running for %lu interactions.\n\n", generations);
+    
+        fprintf(outfile, "Initial State:\n");
+        display_game(gamedup, outfile);
+        fprintf(outfile, "\n");
+        urnlearning_dynamics(gamedup, generations, payoffs);
+        fprintf(outfile, "done.\n\n");
+        
+        //reports
+        display_game(gamedup, outfile);
+        
+        UrnGame_destroy(gamedup);
+        
+        fprintf(outfile, "\nTime taken: %li ms\n", timestamp() - dup_start_time);
+        
+        if (dump_to_files){
+            fclose(outfile);
+        }
+    }
+#ifdef _OPENMP
+    }
+#endif
     
     for (i = 0; i < num_players; i++){
         free(*(types + i));
@@ -302,6 +443,15 @@ main(int argc, char *argv[])
     free(initial_counts);
     free(urn_counts);
     UrnGame_destroy(game);
+    command_free(&options);
+    
+    #ifdef NDEBUG
+    if (be_verbose){
+    #endif
+    printf("Total time: %li\n", timestamp() - start_time);
+    #ifdef NDEBUG
+    }
+    #endif
     
     return 0;
 }

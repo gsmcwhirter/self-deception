@@ -1,5 +1,5 @@
-CFLAGS=-g -O2 -Wall -Wextra -Iinclude -Ideps -rdynamic -DNDEBUG $(OPTFLAGS)
-LFLAGS=-Llib -lm -lurnlearning $(OPTLIBS) #-lsaneopt
+CFLAGS=-g -fopenmp -O2 -Wall -Wextra -Iinclude -Ideps -rdynamic -DNDEBUG $(OPTFLAGS)
+LFLAGS=-Llib -lm $(OPTLIBS)
 
 SOURCES1=$(wildcard src/replicator_*.c deps/*.c)
 OBJECTS1=$(patsubst %.c,%.o,$(SOURCES1))
@@ -15,7 +15,7 @@ TARGET2=build/urnlearning_sim
 # The Target Build
 all: $(TARGET1) $(TARGET2)
 
-dev: CFLAGS=-g -Wall -Wextra -Iinclude -rdynamic $(OPTFLAGS)
+dev: CFLAGS=-g -fopenmp -Wall -Wextra -Iinclude -rdynamic $(OPTFLAGS)
 dev: all
 
 $(TARGET1) $(TARGET2): CFLAGS += -fPIC

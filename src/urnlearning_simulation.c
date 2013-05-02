@@ -394,6 +394,14 @@ main(int argc, char *argv[])
     
         int64_t dup_start_time = timestamp(); 
         urngame_t *gamedup = UrnGame_clone(game);
+        
+        #ifdef NDEBUG
+        if (be_verbose){
+        #endif
+        printf("Done cloning the game for duplication %lu.\n", dup + 1);
+        #ifdef NDEBUG
+        }
+        #endif
     
         FILE *outfile = NULL;
         char *filename;

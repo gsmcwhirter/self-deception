@@ -21,9 +21,10 @@
 #define SITUATIONS 2
 #define STATES 3
 #define MESSAGES 3
-#define MAX_PAYOFF 1.0
-#define INSPECT_PROB 0.85
-#define INSPECT_COST 0.25
+
+double max_payoff = 1.0;
+double inspect_prob = 0.85;
+double inspect_cost = 0.25;
 
 rk_state rand_state;
 int rk_state_set = 0;
@@ -84,7 +85,7 @@ payoffs(unsigned int players, unsigned int **types, unsigned int * state_action_
         }
         
         sample = rk_double(&rand_state);
-        if (sample < INSPECT_PROB){
+        if (sample < inspect_prob){
             real_action = representation;
         }
         else {
@@ -98,21 +99,21 @@ payoffs(unsigned int players, unsigned int **types, unsigned int * state_action_
     
     switch (situation){
         case 0: //pure common interest
-            *(*(payoffs + 0) + representation) = ((state == real_action) ? MAX_PAYOFF - inspect * INSPECT_COST : 0.0);
-            *(*(payoffs + 1) + message) = ((state == real_action) ? MAX_PAYOFF - inspect * INSPECT_COST : 0.0);
-            *(*(payoffs + 2) + action) = ((state == real_action) ? MAX_PAYOFF - inspect * INSPECT_COST : 0.0);
+            *(*(payoffs + 0) + representation) = ((state == real_action) ? max_payoff - inspect * inspect_cost : 0.0);
+            *(*(payoffs + 1) + message) = ((state == real_action) ? max_payoff - inspect * inspect_cost : 0.0);
+            *(*(payoffs + 2) + action) = ((state == real_action) ? max_payoff - inspect * inspect_cost : 0.0);
             break;
         case 1: //partial common interest
             if (state > 1){
-                *(*(payoffs + 0) + representation) = ((state == real_action) ? MAX_PAYOFF - inspect * INSPECT_COST : 0.0);
-                *(*(payoffs + 1) + message) = ((state == real_action) ? MAX_PAYOFF - inspect * INSPECT_COST : 0.0);
-                *(*(payoffs + 2) + action) = ((state == real_action) ? MAX_PAYOFF - inspect * INSPECT_COST : 0.0);
+                *(*(payoffs + 0) + representation) = ((state == real_action) ? max_payoff - inspect * inspect_cost : 0.0);
+                *(*(payoffs + 1) + message) = ((state == real_action) ? max_payoff - inspect * inspect_cost : 0.0);
+                *(*(payoffs + 2) + action) = ((state == real_action) ? max_payoff - inspect * inspect_cost : 0.0);
             }
             else {
                 sender_desired_act = 1 - state;
-                *(*(payoffs + 0) + representation) = ((sender_desired_act == real_action) ? MAX_PAYOFF - inspect * INSPECT_COST : 0.0);
-                *(*(payoffs + 1) + message) = ((sender_desired_act == real_action) ? MAX_PAYOFF - inspect * INSPECT_COST : 0.0);
-                *(*(payoffs + 2) + action) = ((state == real_action) ? MAX_PAYOFF - inspect * INSPECT_COST : 0.0);
+                *(*(payoffs + 0) + representation) = ((sender_desired_act == real_action) ? max_payoff - inspect * inspect_cost : 0.0);
+                *(*(payoffs + 1) + message) = ((sender_desired_act == real_action) ? max_payoff - inspect * inspect_cost : 0.0);
+                *(*(payoffs + 2) + action) = ((state == real_action) ? max_payoff - inspect * inspect_cost : 0.0);
             }   
             break;
         default:
@@ -274,6 +275,32 @@ handle_threads(command_t *self)
     }
 }
 
+static void
+handle_inspect_prob(command_t *self)
+{
+    if (self->arg != NULL){
+        errno = 0;
+        inspect_prob = strtod(self->arg, NULL);
+        if (errno || inspect_prob < 0.0 || inspect_prob > 1.0){
+            printf("Inspection probability is invalid.\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+}
+
+static void
+handle_inspect_cost(command_t *self)
+{
+    if (self->arg != NULL){
+        errno = 0;
+        inspect_cost = strtod(self->arg, NULL);
+        if (errno || inspect_cost < 0.0){
+            printf("Inspection cost is invalid.");
+            exit(EXIT_FAILURE);
+        }
+    }
+}
+
 unsigned numDigits(const unsigned n) {
     if (n < 10) return 1;
     return 1 + numDigits(n / 10);
@@ -290,6 +317,8 @@ main(int argc, char *argv[])
     command_option(&options, "-i", "--interactions <arg>", "number of interactions to run (default 1000000)", handle_interactions);
     command_option(&options, "-N", "--duplications <arg>", "number of duplications to run (default 1)", handle_duplications);
     command_option(&options, "-M", "--threads <arg>", "number of threads to use (openmp, default 1)", handle_threads);
+    command_option(&options, "-p", "--inspect_prob <arg>", "probability of successful inspection (default 0.85)", handle_inspect_prob);
+    command_option(&options, "-c", "--inspect_cost <arg>", "cost of inspection (default 0.25)", handle_inspect_cost);
     command_parse(&options, argc, argv);
     
     unsigned int num_players = 3;

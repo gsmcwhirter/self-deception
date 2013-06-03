@@ -82,6 +82,14 @@ else {
         }
       }); 
       
+      rstream.on("error", function (err){
+        console.log("Error on %s:", file);
+        console.log(err);
+        
+        doneFiles += 1;
+        whenDone();
+      });
+      
       rstream.on("end", function (){
         doneFiles += 1;
         

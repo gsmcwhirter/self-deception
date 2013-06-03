@@ -3,12 +3,12 @@ var args = require("optimist")
       .demand(["out", "dir"])
       .alias({"out": "o", "dir": "d"})
       .describe({"out": "The file to output with statistics.", "dir": "The directory containing the .out files from a simulation run."})
-      .check(checkArguments);
+      .check(checkArguments)
       .argv
   , fs = require("fs")
-  , require("buffertools") //monkey-patch
   ;      
-  
+
+require("buffertools") //monkey-patch
 
   
 function checkArguments(argv){

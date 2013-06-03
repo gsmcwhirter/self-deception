@@ -5,6 +5,7 @@ var args = require("optimist")
       .describe({"out": "The file to output with statistics.", "dir": "The directory containing the .out files from a simulation run."})
       .argv
   , fs = require("fs")
+  , path = require("path")
   ;      
 
 require("buffertools") //monkey-patch
@@ -25,12 +26,10 @@ else {
     
     files.forEach(function (file){
       console.log("Parsing %s...", file);
-      var rstream = fs.createReadStream(file)
-      
+      var rstream = fs.createReadStream(path.join(args.dir, file))
         , end_state_started = false
         , start_byte = 0
         , incomplete_line = ""
-      
         , players = []
         , current_player = -1
         ;

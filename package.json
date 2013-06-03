@@ -1,0 +1,27 @@
+{
+  "name": "self-deception",
+  "version": "0.0.0",
+  "description": "This is a program for some research regarding self-deception.",
+  "main": "stats_parser.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://gsmcwhirter@github.com/gsmcwhirter/self-deception.git"
+  },
+  "author": "Gregory McWhirter",
+  "license": "MIT",
+  "readmeFilename": "Readme.md",
+  "gitHead": "6c405602a10dd10734766541506f35692f634d35",
+  "bugs": {
+    "url": "https://github.com/gsmcwhirter/self-deception/issues"
+  },
+  "dependencies": {
+    "optimist": "~0.5.2",
+    "buffertools": "~1.1.1"
+  }
+}

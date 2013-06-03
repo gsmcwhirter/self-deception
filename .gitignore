@@ -20,3 +20,4 @@ tests/*.serial
 # Make results
 build
 dist
+node_modules

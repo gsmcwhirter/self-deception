@@ -86,7 +86,22 @@ payoffs(unsigned int players, unsigned int **types, unsigned int * state_action_
         
         sample = rk_double(&rand_state);
         if (sample < inspect_prob){
-            real_action = representation;
+            switch (situation){
+                case 0: //pure common interest
+                    real_action = representation;
+                    break;    
+                case 1: //partial common interest
+                    if (representation > 1){
+                        real_action = representation;
+                    }
+                    else {
+                        real_action = 1 - representation;
+                    }
+                default:
+                    exit(EXIT_FAILURE);
+                    break;
+            }
+            
         }
         else {
             real_action = (unsigned int)rk_interval(STATES - 1, &rand_state); // -1 b/c inclusive

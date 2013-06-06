@@ -97,6 +97,7 @@ payoffs(unsigned int players, unsigned int **types, unsigned int * state_action_
                     else {
                         real_action = 1 - representation;
                     }
+                    break;
                 default:
                     exit(EXIT_FAILURE);
                     break;

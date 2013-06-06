@@ -86,22 +86,23 @@ payoffs(unsigned int players, unsigned int **types, unsigned int * state_action_
         
         sample = rk_double(&rand_state);
         if (sample < inspect_prob){
-            switch (situation){
-                case 0: //pure common interest
-                    real_action = representation;
-                    break;    
-                case 1: //partial common interest
-                    if (representation > 1){
-                        real_action = representation;
-                    }
-                    else {
-                        real_action = 1 - representation;
-                    }
-                    break;
-                default:
-                    exit(EXIT_FAILURE);
-                    break;
-            }
+            //switch (situation){
+            //    case 0: //pure common interest
+            //        real_action = representation;
+            //        break;    
+            //    case 1: //partial common interest
+            //        if (representation > 1){
+                        real_action = representation; //This is correct. Even in partial common interest cases, 
+                                                      //the receiver wants to know the real state.
+            //        }
+            //        else {
+            //            real_action = 1 - representation;
+            //        }
+            //        break;
+            //    default:
+            //        exit(EXIT_FAILURE);
+            //        break;
+            //}
             
         }
         else {

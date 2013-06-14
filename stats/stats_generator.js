@@ -290,8 +290,6 @@ else {
 
   go = readTar;
 
-  console.log(gzbz);
-
   function readTar(withGz){
     var rstream = fs.createReadStream(args.dir);
     if (withGz){

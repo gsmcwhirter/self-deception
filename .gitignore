@@ -21,3 +21,12 @@ tests/*.serial
 build
 dist
 node_modules
+
+# Project files
+*.sublime-*
+
+# Simulation files
+*.out
+*.dir.tar
+*.dir.tar.gz
+*.stats.json

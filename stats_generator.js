@@ -4,7 +4,7 @@ var args = require("optimist")
       .alias({"out": "o", "dir": "d", "tol": "t"})
       .default("tol", 0.0005)
       .describe({ "out": "The file to output with statistics."
-                , "dir": "The directory containing the .out files from a simulation run."
+                , "dir": "The directory, tar, or tar.gz containing the .out files from a simulation run."
                 , "tol": "Tolerance for counting as non-zero."})
       .argv
   , fs = require("fs")
@@ -12,6 +12,7 @@ var args = require("optimist")
   , events = require("events")
   , util = require("util")
   , tar = require("tar")
+  , gzbz = require("gzbz/streaming")
   ;      
 
 require("buffertools") //monkey-patch
@@ -287,11 +288,27 @@ else {
   var action2 = new StatsAction();
   action2.on("data", dataWriter);
 
-  go = function (){
-    fs.createReadStream(args.dir)
-      .pipe(tar.Parse())
+  go = readTar;
+
+  console.log(gzbz);
+
+  function readTar(withGz){
+    var rstream = fs.createReadStream(args.dir);
+    if (withGz){
+      rstream = rstream.pipe(new gzbz.GzipInflater());
+    }
+
+    rstream.pipe(tar.Parse())
       .on("entry", function (entry){
         action2.act(entry, entry.props.path);
+      })
+      .on("error", function (err){
+        if (!withGz){
+          readTar(true);
+        }
+        else {
+          throw err;
+        }
       })
       .on("end", function (){
         endWStream();

@@ -1,10 +1,12 @@
-CFLAGS=-g -fopenmp -O2 -Wall -Wextra -Iinclude -Ideps -rdynamic -DNDEBUG $(OPTFLAGS)
-LFLAGS=-Llib -lm $(OPTLIBS)
+CFLAGS=-g -fopenmp -O2 -Wall -Wextra -Ideps -Ideps/simulations -DNDEBUG $(OPTFLAGS)
+LFLAGS=-Lbuild -lm $(OPTLIBS)
 
-SOURCES1=$(wildcard src/replicator_*.c deps/*.c)
+SOURCES1=$(wildcard src/replicator_*.c)
 OBJECTS1=$(patsubst %.c,%.o,$(SOURCES1))
-SOURCES2=$(wildcard src/urnlearning_*.c deps/*.c)
+SOURCES2=$(wildcard src/urnlearning_*.c)
 OBJECTS2=$(patsubst %.c,%.o,$(SOURCES2))
+DEPSOURCES=$(wildcard deps/*.c)
+DEPOBJECTS=$(patsubst %.c,%.o,$(DEPSOURCES))
 
 TEST_SRC=$(wildcard tests/*_tests.c)
 TESTS=$(patsubst %.c,%,$(TEST_SRC))
@@ -15,17 +17,23 @@ TARGET2=build/urnlearning_sim
 # The Target Build
 all: $(TARGET1) $(TARGET2)
 
-dev: CFLAGS=-g -fopenmp -Wall -Wextra -Iinclude -rdynamic $(OPTFLAGS)
+deps: build
+	clib install -o deps clibs/commander clibs/timestamp
+	clib install -o deps/simulations gsmcwhirter/c-simulations
+	(cd deps/simulations && CC=$(CC) SRC=. make all)
+	cp deps/simulations/build/*.{a,so} build/
+
+dev: CFLAGS=-g -fopenmp -Wall -Wextra -Iinclude $(OPTFLAGS)
 dev: all
 
 $(TARGET1) $(TARGET2): CFLAGS += -fPIC
 $(TARGET1): LFLAGS += -lreplicator
-$(TARGET1): build $(OBJECTS1)
-	$(CC) $(CFLAGS) $(OBJECTS1) $(LFLAGS) -o $@ 
+$(TARGET1): build $(DEPOBJECTS) $(OBJECTS1)
+	$(CC) $(CFLAGS) $(DEPOBJECTS) $(OBJECTS1) $(LFLAGS) -o $@ 
 
 $(TARGET2): LFLAGS += -lurnlearning	
-$(TARGET2): build $(OBJECTS2)
-	$(CC) $(CFLAGS) $(OBJECTS2) $(LFLAGS) -o $@
+$(TARGET2): build $(DEPOBJECTS) $(OBJECTS2)
+	$(CC) $(CFLAGS) $(DEPOBJECTS) $(OBJECTS2) $(LFLAGS) -o $@
 	
 build:
 	@mkdir -p build
@@ -35,7 +43,8 @@ $(TESTS):
 
 # The Unit Tests
 #.PHONY: test demo demov
-.PHONY: test
+.PHONY: test clean cleandeps
+test: CFLAGS += -Itests
 test: LFLAGS += -Lbuild -lreplicator -lurnlearning
 test: $(TESTS)
 	sh ./tests/runtests.sh
@@ -46,6 +55,9 @@ clean:
 	rm -f tests/tests.log
 	find . -name "*.gc*" -exec rm {} \;
 	rm -rf `find . -name "*.dSYM" -print`
+
+cleandeps:
+	rm -rf deps
 
 # The Checker
 BADFUNCS='[^_.>a-zA-Z0-9](str(n?cpy|n?cat|xfrm|n?dup|str|pbrk|tok|_)|stpn?cpy|a?sn?printf|byte_)'

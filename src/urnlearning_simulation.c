@@ -5,10 +5,10 @@
 #include <errno.h>
 #include <inttypes.h>
 
-#include <simulations/urnlearning_urns.h>
-#include <simulations/urnlearning_game.h>
-#include <simulations/urnlearning_simulation.h>
-#include <simulations/randomkit.h>
+#include "urnlearning_urns.h"
+#include "urnlearning_game.h"
+#include "urnlearning_simulation.h"
+#include "randomkit.h"
 
 #include "commander.h"
 #include "timestamp.h"

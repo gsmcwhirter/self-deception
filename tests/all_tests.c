@@ -2,11 +2,9 @@
 #include <dlfcn.h>
 #include <math.h>
 #include <assert.h>
-#include <replicator_dynamics/replicator_population.h>
-#include <replicator_dynamics/replicator_game.h>
-#include <replicator_dynamics/replicator_simulation.h>
-
-#include "simulation.h"
+#include "replicator_population.h"
+#include "replicator_game.h"
+#include "replicator_simulation.h"
 
 #define UNUSED(x) (void)(x)
 

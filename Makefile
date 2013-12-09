@@ -8,6 +8,8 @@ OBJECTS2=$(patsubst %.c,%.o,$(SOURCES2))
 DEPSOURCES=$(wildcard deps/*.c)
 DEPOBJECTS=$(patsubst %.c,%.o,$(DEPSOURCES))
 
+LIBS=build/libreplicator.a build/libreplicator.so build/liburnlearning.a build/liburnlearning.so
+
 TEST_SRC=$(wildcard tests/*_tests.c)
 TESTS=$(patsubst %.c,%,$(TEST_SRC))
 
@@ -15,13 +17,17 @@ TARGET1=build/replicator_sim
 TARGET2=build/urnlearning_sim
 
 # The Target Build
-all: $(TARGET1) $(TARGET2)
+all: libs $(TARGET1) $(TARGET2)
 
 deps: build
 	clib install -o deps clibs/commander clibs/timestamp
 	clib install -o deps/simulations gsmcwhirter/c-simulations
+
+libs: $(LIBS)
+
+$(LIBS): build
 	(cd deps/simulations && CC=$(CC) SRC=. make all)
-	cp deps/simulations/build/*.{a,so} build/
+	cp $(patsubst build/%,deps/simulations/build/%,$(LIBS)) build/
 
 dev: CFLAGS=-g -fopenmp -Wall -Wextra -Iinclude $(OPTFLAGS)
 dev: all

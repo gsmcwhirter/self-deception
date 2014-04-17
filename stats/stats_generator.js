@@ -15,7 +15,7 @@ var args = require("optimist")
   , gzbz = require("gzbz/streaming")
   ;      
 
-require("buffertools") //monkey-patch
+require("buffertools"); //monkey-patch
 
 function FilePond(files, action, maxConcurrent){
   this.queue_pointer = 0;

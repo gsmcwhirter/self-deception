@@ -17,6 +17,8 @@
 #include <omp.h>
 #endif
 
+#define VERSION "0.0.1"
+
 #define UNUSED(x) (void)(x)
 #define SITUATIONS 2
 #define STATES 3
@@ -328,7 +330,7 @@ main(int argc, char *argv[])
 {
     int64_t start_time = timestamp();
     command_t options;
-    command_init(&options, argv[0], "0.0.1");
+    command_init(&options, argv[0], VERSION);
     command_option(&options, "-v", "--verbose", "enable verbose stuff", handle_verbose);
     command_option(&options, "-f", "--files", "dump output to files", handle_files);
     command_option(&options, "-i", "--interactions <arg>", "number of interactions to run (default 1000000)", handle_interactions);

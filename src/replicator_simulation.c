@@ -10,6 +10,8 @@
 #include "replicator_game.h"
 #include "replicator_simulation.h"
 
+#define VERSION "0.0.1"
+
 #define UNUSED(x) (void)(x)
 #define SITUATIONS 2
 // 3

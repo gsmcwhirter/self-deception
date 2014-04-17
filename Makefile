@@ -19,6 +19,10 @@ TARGET2=build/urnlearning_sim
 # The Target Build
 all: libs $(TARGET1) $(TARGET2)
 
+procs: build
+	$(CC) -fopenmp -o build/procs src/procs.c
+	./build/procs
+
 deps: build
 	clib install -o deps clibs/commander clibs/timestamp
 	clib install -o deps/simulations gsmcwhirter/c-simulations

@@ -118,20 +118,20 @@ payoffs(unsigned int players, unsigned int **types, unsigned int * state_action_
     
     switch (situation){
         case 0: //pure common interest
-            *(*(payoffs + 0) + representation) = ((state == real_action) ? max_payoff - inspect * inspect_cost : 0.0);
-            *(*(payoffs + 1) + message) = ((state == real_action) ? max_payoff - inspect * inspect_cost : 0.0);
+            *(*(payoffs + 0) + representation) = ((state == real_action) ? max_payoff : 0.0);
+            *(*(payoffs + 1) + message) = ((state == real_action) ? max_payoff : 0.0);
             *(*(payoffs + 2) + action) = ((state == real_action) ? max_payoff - inspect * inspect_cost : 0.0);
             break;
         case 1: //partial common interest
             if (state > 1){
-                *(*(payoffs + 0) + representation) = ((state == real_action) ? max_payoff - inspect * inspect_cost : 0.0);
-                *(*(payoffs + 1) + message) = ((state == real_action) ? max_payoff - inspect * inspect_cost : 0.0);
+                *(*(payoffs + 0) + representation) = ((state == real_action) ? max_payoff : 0.0);
+                *(*(payoffs + 1) + message) = ((state == real_action) ? max_payoff : 0.0);
                 *(*(payoffs + 2) + action) = ((state == real_action) ? max_payoff - inspect * inspect_cost : 0.0);
             }
             else {
                 sender_desired_act = 1 - state;
-                *(*(payoffs + 0) + representation) = ((sender_desired_act == real_action) ? max_payoff - inspect * inspect_cost : 0.0);
-                *(*(payoffs + 1) + message) = ((sender_desired_act == real_action) ? max_payoff - inspect * inspect_cost : 0.0);
+                *(*(payoffs + 0) + representation) = ((sender_desired_act == real_action) ? max_payoff : 0.0);
+                *(*(payoffs + 1) + message) = ((sender_desired_act == real_action) ? max_payoff : 0.0);
                 *(*(payoffs + 2) + action) = ((state == real_action) ? max_payoff - inspect * inspect_cost : 0.0);
             }   
             break;

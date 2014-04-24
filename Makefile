@@ -1,23 +1,25 @@
 CFLAGS=-g -fopenmp -O2 -Wall -Wextra -Ideps -Ideps/simulations -DNDEBUG $(OPTFLAGS)
 LFLAGS=-Lbuild -lm $(OPTLIBS)
 
-SOURCES1=$(wildcard src/replicator_*.c)
-OBJECTS1=$(patsubst %.c,%.o,$(SOURCES1))
+#SOURCES1=$(wildcard src/replicator_*.c)
+#OBJECTS1=$(patsubst %.c,%.o,$(SOURCES1))
 SOURCES2=$(wildcard src/urnlearning_*.c)
 OBJECTS2=$(patsubst %.c,%.o,$(SOURCES2))
 DEPSOURCES=$(wildcard deps/*.c)
 DEPOBJECTS=$(patsubst %.c,%.o,$(DEPSOURCES))
 
-LIBS=build/libreplicator.a build/libreplicator.so build/liburnlearning.a build/liburnlearning.so
+#LIBS=build/libreplicator.a build/libreplicator.so build/liburnlearning.a build/liburnlearning.so
+LIBS=build/liburnlearning.a build/liburnlearning.so
 
 TEST_SRC=$(wildcard tests/*_tests.c)
 TESTS=$(patsubst %.c,%,$(TEST_SRC))
 
-TARGET1=build/replicator_sim
+#TARGET1=build/replicator_sim
 TARGET2=build/urnlearning_sim
 
 # The Target Build
-all: libs $(TARGET1) $(TARGET2)
+#all: libs $(TARGET1) $(TARGET2)
+all: libs $(TARGET2)
 
 procs: build
 	$(CC) -fopenmp -o build/procs src/procs.c
@@ -36,11 +38,12 @@ $(LIBS): build
 dev: CFLAGS=-g -fopenmp -Wall -Wextra -Iinclude $(OPTFLAGS)
 dev: all
 
-$(TARGET1) $(TARGET2): CFLAGS += -fPIC
-$(TARGET1): LFLAGS += -lreplicator
-$(TARGET1): build $(DEPOBJECTS) $(OBJECTS1)
-	$(CC) $(CFLAGS) $(DEPOBJECTS) $(OBJECTS1) $(LFLAGS) -o $@ 
+# $(TARGET1) $(TARGET2): CFLAGS += -fPIC
+# $(TARGET1): LFLAGS += -lreplicator
+# $(TARGET1): build $(DEPOBJECTS) $(OBJECTS1)
+# 	$(CC) $(CFLAGS) $(DEPOBJECTS) $(OBJECTS1) $(LFLAGS) -o $@ 
 
+$(TARGET2): CFLAGS += -fPIC
 $(TARGET2): LFLAGS += -lurnlearning	
 $(TARGET2): build $(DEPOBJECTS) $(OBJECTS2)
 	$(CC) $(CFLAGS) $(DEPOBJECTS) $(OBJECTS2) $(LFLAGS) -o $@
@@ -55,7 +58,8 @@ $(TESTS):
 #.PHONY: test demo demov
 .PHONY: test clean cleandeps
 test: CFLAGS += -Itests
-test: LFLAGS += -Lbuild -lreplicator -lurnlearning
+#test: LFLAGS += -Lbuild -lreplicator -lurnlearning
+test: LFLAGS += -Lbuild -lurnlearning
 test: $(TESTS)
 	sh ./tests/runtests.sh
 	

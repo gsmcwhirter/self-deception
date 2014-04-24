@@ -27,6 +27,7 @@
 double max_payoff = 1.0;
 double inspect_prob = 0.85;
 double inspect_cost = 0.25;
+double prop_fitness_other = 1.0;
 
 rk_state rand_state;
 int rk_state_set = 0;
@@ -118,20 +119,20 @@ payoffs(unsigned int players, unsigned int **types, unsigned int * state_action_
     
     switch (situation){
         case 0: //pure common interest
-            *(*(payoffs + 0) + representation) = ((state == real_action) ? max_payoff : 0.0);
-            *(*(payoffs + 1) + message) = ((state == real_action) ? max_payoff : 0.0);
+            *(*(payoffs + 0) + representation) = ((state == real_action) ? max_payoff : 0.0) * prop_fitness_other + ((state == representation) ? max_payoff : 0.0) * (1.0 - prop_fitness_other);
+            *(*(payoffs + 1) + message) = ((state == real_action) ? max_payoff : 0.0) * prop_fitness_other + ((state == representation) ? max_payoff : 0.0) * (1.0 - prop_fitness_other);
             *(*(payoffs + 2) + action) = ((state == real_action) ? max_payoff - inspect * inspect_cost : 0.0);
             break;
         case 1: //partial common interest
             if (state > 1){
-                *(*(payoffs + 0) + representation) = ((state == real_action) ? max_payoff : 0.0);
-                *(*(payoffs + 1) + message) = ((state == real_action) ? max_payoff : 0.0);
+                *(*(payoffs + 0) + representation) = ((state == real_action) ? max_payoff : 0.0) * prop_fitness_other + ((state == representation) ? max_payoff : 0.0) * (1.0 - prop_fitness_other);
+                *(*(payoffs + 1) + message) = ((state == real_action) ? max_payoff : 0.0) * prop_fitness_other + ((state == representation) ? max_payoff : 0.0) * (1.0 - prop_fitness_other);
                 *(*(payoffs + 2) + action) = ((state == real_action) ? max_payoff - inspect * inspect_cost : 0.0);
             }
             else {
                 sender_desired_act = 1 - state;
-                *(*(payoffs + 0) + representation) = ((sender_desired_act == real_action) ? max_payoff : 0.0);
-                *(*(payoffs + 1) + message) = ((sender_desired_act == real_action) ? max_payoff : 0.0);
+                *(*(payoffs + 0) + representation) = ((sender_desired_act == real_action) ? max_payoff : 0.0) * prop_fitness_other + ((state == representation) ? max_payoff : 0.0) * (1.0 - prop_fitness_other);
+                *(*(payoffs + 1) + message) = ((sender_desired_act == real_action) ? max_payoff : 0.0) * prop_fitness_other + ((state == representation) ? max_payoff : 0.0) * (1.0 - prop_fitness_other);
                 *(*(payoffs + 2) + action) = ((state == real_action) ? max_payoff - inspect * inspect_cost : 0.0);
             }   
             break;
@@ -320,6 +321,19 @@ handle_inspect_cost(command_t *self)
     }
 }
 
+static void
+handle_prop_fitness_other(command_t *self)
+{
+    if (self->arg != NULL){
+        errno = 0;
+        prop_fitness_other = strtod(self->arg, NULL);
+        if (errno || prop_fitness_other < 0.0 || prop_fitness_other > 1.0){
+            printf("Other-related fitness proportion is invalid.");
+            exit(EXIT_FAILURE);
+        }
+    }
+}
+
 unsigned numDigits(const unsigned n) {
     if (n < 10) return 1;
     return 1 + numDigits(n / 10);
@@ -338,7 +352,12 @@ main(int argc, char *argv[])
     command_option(&options, "-M", "--threads <arg>", "number of threads to use (openmp, default 1)", handle_threads);
     command_option(&options, "-p", "--inspect_prob <arg>", "probability of successful inspection (default 0.85)", handle_inspect_prob);
     command_option(&options, "-c", "--inspect_cost <arg>", "cost of inspection (default 0.25)", handle_inspect_cost);
+    command_option(&options, "-o", "--other_fitness <arg>", "proportion of fitness generated from other-related interactions (default 1.0)", handle_prop_fitness_other);
     command_parse(&options, argc, argv);
+
+    printf("Inspect probability: %g\n", inspect_prob);
+    printf("Inspect cost: %g\n", inspect_cost);
+    printf("Other-related fitness: %g\n", prop_fitness_other);
     
     unsigned int num_players = 3;
     unsigned int *urn_counts = malloc(num_players * sizeof(unsigned int));

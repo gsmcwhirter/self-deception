@@ -104,7 +104,6 @@ function execNextTask(){
   if (!task) return;
 
   console.log("Running %s", task.args.join(" "));
-  return;
 
   var odir = path.join(args.dir, "o_" + ((task.o == 1 || task.o == 0.0) ? task.o + ".0" : Math.round10(task.o, -2)) + ".results")
     , basename = ((task.p == 1 || task.p == 0.0) ? task.p + ".0" : Math.round10(task.p, -1)) + "_c_" + ((task.c == 1 || task.c == 0.0) ? task.c + ".0" : Math.round10(task.c, -1))

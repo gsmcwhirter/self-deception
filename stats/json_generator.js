@@ -117,8 +117,10 @@ StatsAction.prototype.act = function (rstream, filename){
     parseBuffer(buffer);
   });
 
-  function parseBuffer(buffer){
+  function parseBuffer(buffer, force_incline){
     data_events = true;
+
+    if (!buffer && !force_incline) return;
 
     var match = buffer.toString().match(/done\.\n/g);
 
@@ -169,7 +171,7 @@ StatsAction.prototype.act = function (rstream, filename){
     var tolerance = args.tol || 0.0005;
 
     var retData = {
-      UCMap: {}
+      UMap: {}
     , CMap: {}
     , RMap: {}
     };
@@ -185,7 +187,7 @@ StatsAction.prototype.act = function (rstream, filename){
     
     var i, j;
     for (i = 0; i < states; i++){
-      retData.UCMap['q' + i] = {};
+      retData.UMap['q' + i] = {};
       retData.CMap['r' + i] = {};
       for (j = 0; j < situations; j++){
         retData.CMap['r' + i]['s' + j] = {};
@@ -202,7 +204,7 @@ StatsAction.prototype.act = function (rstream, filename){
     players[0].proportions.forEach(function (props, q){
       props.forEach(function (prop, r){
         if (prop > tolerance){
-          retData.UCMap['q' + q]['r' + r] = prop;
+          retData.UMap['q' + q]['r' + r] = prop;
         }
       });
     });
@@ -238,6 +240,7 @@ StatsAction.prototype.act = function (rstream, filename){
   
   rstream.on("end", function (){
     if (data_events){
+      parseBuffer(new Buffer(""), true);
       self.emit("data", {data: parsePlayers(players), file: filename});
     }
     self.emit("end");
@@ -261,6 +264,7 @@ if (fs.statSync(args.dir).isDirectory()){
     console.log("Opened the output directory.");
 
     var pond = new FilePond(files.map(function (file){ return path.join(args.dir, file); }), new StatsAction());
+    console.log(pond.file_queue.length);
     
     pond.on("file", function (file){
       console.log("Parsing %s...", file);
@@ -274,13 +278,15 @@ if (fs.statSync(args.dir).isDirectory()){
     pond.on("data", dataWriter);
     
     pond.on("end", function (){
-      endWstream();
+      endWStream();
       console.log("done.");
     });
     
     go = function (){
       pond.run();
-    }  
+    };
+
+    actuallyStart();  
   });
 }
 else {
@@ -314,18 +320,22 @@ else {
       })
       ;
   }
+
+  actuallyStart();
 }
 
-wstream = fs.createWriteStream(args.out);
-wstream.on("error", function (err){
-  console.log("Write stream error:");
-  console.log(err);
-});
+function actuallyStart(){
+  wstream = fs.createWriteStream(args.out);
+  wstream.on("error", function (err){
+    console.log("Write stream error:");
+    console.log(err);
+  });
 
-wstream.on("open", function (){
-  wstream.write("[\n");
-  go();
-});
+  wstream.on("open", function (){
+    wstream.write("[\n");
+    go();
+  });
+}
 
 function dataWriter(data){
   console.log("Writing data for %s", data.file);

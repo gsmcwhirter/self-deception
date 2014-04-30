@@ -1,21 +1,19 @@
 var path = require("path")
   , args = require("optimist")
-      .usage("$0 --script <script> --dir <results_dir> --pmin <p_min> --pmax <p_max> --pstep <p_step> --cmin <c_min> --cmax <c_max> --cstep <c_step> --omin <o_min> --omax <o_max> --ostep <o_step> --iterations <iters> --duplications <dups> --threads <thr>")
+      .usage("$0 [--generator] [--parser] --dir <results_dir> --pmin <p_min> --pmax <p_max> --pstep <p_step> --cmin <c_min> --cmax <c_max> --cstep <c_step> --omin <o_min> --omax <o_max> --ostep <o_step>")
       .demand(["dir"])
-      .alias({"dir": "d", "script": "s", "iterations": "i", "duplications": "N", "threads": "M"})
-      .default("script", path.resolve(path.join(__dirname, "..", "build", "urnlearning_sim")))
+      .alias({"dir": "d", "script": "s", "iterations": "i", "duplications": "N", "threads": "M", "generator": "g", "parser": "p"})
       .default("pmin", 0.0)
       .default("pmax", 1.0)
       .default("pstep", 0.1)
       .default("cmin", 0.0)
       .default("cmax", 0.6)
       .default("cstep", 0.1)
-      .default("omin", 0.5)
+      .default("omin", 0.75)
       .default("omax", 1.0)
       .default("ostep", 0.25)
-      .default("iterations", 10000000)
-      .default("duplications", 1000)
-      .default("threads", 4)
+      .boolean("generator")
+      .boolean("parser")
       .describe({ "dir": "The directory to output the results to."
                 , "pmin": "The minimum p value (inclusive)."
                 , "pmax": "The maximum p value."
@@ -25,34 +23,21 @@ var path = require("path")
                 , "cstep": "The step between generated c values."
                 , "omin": "The minimum o value (inclusive)."
                 , "omax": "The maximum o value."
-                , "ostep": "The step between generated o values.")
+                , "ostep": "The step between generated o values."
+                , "generator": "Run the json_generator script"
+                , "parser": "Run the json_parser script"})
       .argv
   , fs = require("fs")
   , cp = require("child_process")
-  , library_path = ""
+  , script_path = ""
   , tasks = []
   ;      
 
 require("buffertools"); //monkey-patch
 
-try {
-  if (!fs.statSync(args.dir).isDirectory()){
-    fs.mkdirSync(args.dir);
-  }
-} catch (e) {
-  fs.mkdirSync(args.dir);
-}
+fs.statSync(args.dir).isDirectory()
 
-try {
-  if (!fs.statSync(args.script).isFile()){
-    throw new Error("Cannot find script to run.");
-  }
-} catch (e) {
-  throw new Error("Cannot find script to run.");
-}
-
-library_path = path.dirname(args.script);
-args.library_path = library_path;
+script_path = path.resolve(__dirname);
 
 if (args.pstep <= 0){
   throw new Error("pstep cannot be non-positive.");
@@ -130,21 +115,28 @@ for (var o = args.omin; o <= args.omax; o += args.ostep){
       if (c == 0.9999999999999999) c = 1;
       var cstr = ((c == 1 || c == 0.0) ? c + ".0" : Math.round10(c, -3) + "");
 
+      var odir = path.join(args.dir, "o_" + ostr + ".results")
+        , basename = "p_" + pstr + "_c_" + cstr
+        ;
 
-      tasks.push({
-        args: ["-f", "-v", "-i", args.iterations, "-N", args.duplications, "-M", args.threads, "-p", pstr, "-c", cstr, "-o", ostr]
-      , ostr: ostr
-      , pstr: pstr
-      , cstr: cstr
-      });
+      if (args.parser){
+        tasks.push({
+          args: [path.resolve(path.join(__dirname,"json_parser.js")), "-s", basename + ".raw.json", "-o", basename + ".stats.json"]
+        , odir: odir
+        });
+      }
+
+      if (args.generator){
+        tasks.push({
+          args: [path.resolve(path.join(__dirname,"json_generator.js")), "-o", basename + ".raw.json", "-d", basename + ".dir"]
+        , odir: odir
+        });
+      }
     }
   }
 }
 
 //console.log(tasks);
-
-console.log("Script: %s", args.script);
-console.log("Results: %s", path.resolve(args.dir));
 
 execNextTask();
 
@@ -153,45 +145,14 @@ function execNextTask(){
 
   if (!task) return;
 
-  console.log("Running %s", task.args.join(" "));
-
-  var odir = path.join(args.dir, "o_" + task.ostr + ".results")
-    , basename = "p_" + task.pstr + "_c_" + task.cstr
-    , pcdir = path.join(odir, basename + ".dir")
-    , logfile = path.join(odir, basename + ".log")
-    ;
-
-  try {
-    fs.mkdirSync(odir);
-  }
-  catch (e) {}
-
-  try {
-    if (fs.statSync(pcdir).isDirectory()){
-      throw new Error("Output directory already exists.");
-    }
-  } catch (e) {
-    if (e.message == "Output directory already exists."){
-      throw e;
-    }
-    else {
-      fs.mkdirSync(pcdir);
-    }
-  }
-  
-  cp.execFile(args.script, task.args, {
-    cwd: pcdir
-  , env: {
-      "LD_LIBRARY_PATH": args.library_path
-    , "DYLD_LIBRARY_PATH": args.library_path
-    }
+  console.log("Running node %s in %s", task.args.join(" "), task.odir);
+ 
+  cp.execFile("node", task.args, {
+    cwd: path.resolve(task.odir)
   }, function (err, stdout, stderr){
     if (err){
-      fs.writeFileSync(logfile, err);
-      fs.appendFileSync(logfile, stderr);
-    }
-    else {
-      fs.writeFileSync(logfile, stdout);
+      console.log(stdout);
+      console.log(stderr);
     }
 
     process.nextTick(execNextTask);

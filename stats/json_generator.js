@@ -188,9 +188,9 @@ StatsAction.prototype.act = function (rstream, filename){
     var i, j;
     for (i = 0; i < states; i++){
       retData.UMap['q' + i] = {};
-      retData.CMap['r' + i] = {};
+      retData.CMap['q' + i] = {}; //was r
       for (j = 0; j < situations; j++){
-        retData.CMap['r' + i]['s' + j] = {};
+        retData.CMap['q' + i]['s' + j] = {}; //was r
       }
     }
     
@@ -204,7 +204,7 @@ StatsAction.prototype.act = function (rstream, filename){
     players[0].proportions.forEach(function (props, q){
       props.forEach(function (prop, r){
         if (prop > tolerance){
-          retData.UMap['q' + q]['r' + r] = prop;
+          retData.UMap['q' + q]['q' + r] = prop; //was r (second)
         }
       });
     });
@@ -215,7 +215,7 @@ StatsAction.prototype.act = function (rstream, filename){
     
       props.forEach(function (prop, m){
         if (prop > tolerance){
-          retData.CMap['r' + r]['s' + s]['m' + m] = prop;
+          retData.CMap['q' + r]['s' + s]['m' + m] = prop; //was r
         }
       });
     });

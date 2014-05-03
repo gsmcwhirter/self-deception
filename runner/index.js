@@ -1,6 +1,6 @@
 var path = require("path")
   , args = require("optimist")
-      .usage("$0 --script <script> --dir <results_dir> --pmin <p_min> --pmax <p_max> --pstep <p_step> --cmin <c_min> --cmax <c_max> --cstep <c_step> --omin <o_min> --omax <o_max> --ostep <o_step> --iterations <iters> --duplications <dups> --threads <thr>")
+      .usage("$0 --script <script> --dir <results_dir> --pmin <p_min> --pmax <p_max> --pstep <p_step> --cmin <c_min> --cmax <c_max> --cstep <c_step> --omin <o_min> --omax <o_max> --ostep <o_step> --smin <s_min> --smax <s_max> --sstep <s_step> --iterations <iters> --duplications <dups> --threads <thr>")
       .demand(["dir"])
       .alias({"dir": "d", "script": "s", "iterations": "i", "duplications": "N", "threads": "M"})
       .default("script", path.resolve(path.join(__dirname, "..", "build", "urnlearning_sim")))
@@ -13,6 +13,9 @@ var path = require("path")
       .default("omin", 0.5)
       .default("omax", 1.0)
       .default("ostep", 0.25)
+      .default("smin", 0.0)
+      .default("smax", 0.5)
+      .default("sstep", 0.25)
       .default("iterations", 10000000)
       .default("duplications", 1000)
       .default("threads", 4)
@@ -25,7 +28,11 @@ var path = require("path")
                 , "cstep": "The step between generated c values."
                 , "omin": "The minimum o value (inclusive)."
                 , "omax": "The maximum o value."
-                , "ostep": "The step between generated o values.")
+                , "ostep": "The step between generated o values."
+                , "smin": "The minimum s value (inclusive)."
+                , "smax": "The maximum s value."
+                , "sstep": "The step between generated s values."
+                })
       .argv
   , fs = require("fs")
   , cp = require("child_process")
@@ -64,6 +71,10 @@ if (args.cstep <= 0){
 
 if (args.ostep <= 0){
   throw new Error("ostep cannot be non-positive.");
+}
+
+if (args.sstep < 0){
+  throw new Error("sstep cannot be non-positive.");
 }
 
 // from: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/round
@@ -118,25 +129,31 @@ if (args.ostep <= 0){
 })();
 
 //Set up tasks
-for (var o = args.omin; o <= args.omax; o += args.ostep){
-  if (o == 0.9999999999999999) o = 1;
-  var ostr = ((o == 1 || o == 0.0) ? o + ".0" : Math.round10(o, -3) + "");
+for (var s = args.smin; s <= args.smax; s += args.sstep){
+  if (s == 0.9999999999999999) s = 1;
+  var sstr = ((s == 1 || s == 0.0) ? s + ".0" : Math.round10(s, -3) + "");
 
-  for (var p = args.pmin; p <= args.pmax; p += args.pstep){
-    if (p == 0.9999999999999999) p = 1;
-    var pstr = ((p == 1 || p == 0.0) ? p + ".0" : Math.round10(p, -3) + "");
+  for (var o = args.omin; o <= args.omax; o += args.ostep){
+    if (o == 0.9999999999999999) o = 1;
+    var ostr = ((o == 1 || o == 0.0) ? o + ".0" : Math.round10(o, -3) + "");
 
-    for (var c = args.cmin; c <= args.cmax; c += args.cstep){  
-      if (c == 0.9999999999999999) c = 1;
-      var cstr = ((c == 1 || c == 0.0) ? c + ".0" : Math.round10(c, -3) + "");
+    for (var p = args.pmin; p <= args.pmax; p += args.pstep){
+      if (p == 0.9999999999999999) p = 1;
+      var pstr = ((p == 1 || p == 0.0) ? p + ".0" : Math.round10(p, -3) + "");
+
+      for (var c = args.cmin; c <= args.cmax; c += args.cstep){  
+        if (c == 0.9999999999999999) c = 1;
+        var cstr = ((c == 1 || c == 0.0) ? c + ".0" : Math.round10(c, -3) + "");
 
 
-      tasks.push({
-        args: ["-f", "-v", "-i", args.iterations, "-N", args.duplications, "-M", args.threads, "-p", pstr, "-c", cstr, "-o", ostr]
-      , ostr: ostr
-      , pstr: pstr
-      , cstr: cstr
-      });
+        tasks.push({
+          args: ["-f", "-v", "-i", args.iterations, "-N", args.duplications, "-M", args.threads, "-p", pstr, "-c", cstr, "-o", ostr, "-s", sstr]
+        , ostr: ostr
+        , pstr: pstr
+        , cstr: cstr
+        , sstr: sstr
+        });
+      }
     }
   }
 }
@@ -155,7 +172,7 @@ function execNextTask(){
 
   console.log("Running %s", task.args.join(" "));
 
-  var odir = path.join(args.dir, "o_" + task.ostr + ".results")
+  var odir = path.join(args.dir, "s_" + task.sstr + "_o_" + task.ostr + ".results")
     , basename = "p_" + task.pstr + "_c_" + task.cstr
     , pcdir = path.join(odir, basename + ".dir")
     , logfile = path.join(odir, basename + ".log")

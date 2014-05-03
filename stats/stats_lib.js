@@ -1,196 +1,160 @@
-var STATES = 2;
-var MESSAGES = 2;
-var ACTIONS = 3;
-var STATE_PROBS = {q0: 0.5, q1: 0.5};
-var PAYOFF_SCHEMES = {
-  1: {q0: {a0: [5, 10], a1: [0.0, 0.0], a2: [6, 6]}, q1: {a0: [0.0, 0.0], a1: [5, 10], a2: [6, 6]}}
-, 2: {q0: {a0: [1, 10], a1: [0.0, 0.0], a2: [6, 6]}, q1: {a0: [0.0, 0.0], a1: [1, 10], a2: [6, 6]}}
-, 3: {q0: {a0: [1, 10], a1: [0.0, 0.0], a2: [6, 5]}, q1: {a0: [0.0, 0.0], a1: [1, 10], a2: [6, 6]}}
-}
-
 var _ = require("underscore")
   ;
 
-module.exports = {
-  base_n_bit: base_n_bit
-, strategyToMaps: strategyToMaps
-, strategyToStratdata: strategyToStratdata
-, generateMgivenQ: generateMgivenQ
-, generateQgivenM: generateQgivenM
-, misuseAgainstPop: misuseAgainstPop
-, deceptionAgainstReceiver: deceptionAgainstReceiver
-, percentDeception: percentDeception
+module.exports = Analyzer;
 
-, STATES: STATES
-, MESSAGES: MESSAGES
-, ACTIONS: ACTIONS
-, STATE_PROBS: STATE_PROBS
-, PAYOFF_SCHEMES: PAYOFF_SCHEMES
-};
-
-function base_n_bit(base, number, bit)
-{
-    return Math.floor(number / Math.pow(base, bit)) % base;
+function Analyzer(num_states, num_messages, state_probs, inspect_cost, payoffs, best_responses, codes){
+  this.states = num_states;
+  this.messages = num_messages;
+  this.state_probs = state_probs;
+  this.inspect_cost = inspect_cost;
+  this.payoffs = payoffs;
+  this.best_responses = best_responses;
+  this.codes = {state: codes.state+'' || '', message: codes.message+'' || ''};
 }
 
-function strategyToMaps(strategy){
-  var maps = {sender: {}, receiver: {}};
-
-  var i;
-
-  //sender
-  for (i = 0; i < STATES; i++){
-    maps.sender['q'+i] = 'm'+base_n_bit(MESSAGES, strategy, i);
+/*
+function leadingLetters(sender_data){
+  var keys = _.filter(Object.keys(sender_data), function (item){return sender_data.hasOwnProperty(item);});
+  
+  if (keys.length === 0){
+    return null;
   }
 
-  //receiver
-  for (i = 0; i < MESSAGES; i++){
-    maps.receiver['m'+i] = 'a'+base_n_bit(ACTIONS, Math.floor(strategy / Math.pow(MESSAGES, STATES)), i);
-  }
+  var keys2 = _.filter(Object.keys(sender_data[keys[0]]), function (item){return sender_data[keys[0]].hasOwnProperty(item)});
 
-  return maps;
+  return {state: sender_data[keys[0]].substring(0,1), message: sender_data[keys[0]][keys2[0]].substring(0,1)};
 }
+*/
 
-function strategyToStratdata(strategy){
-  return [{strategy: strategy, proportion: 1.0}];
-}
-
-function generateMgivenQ(data){
+Analyzer.prototype.generateMgivenQ = function (sender_data){
   var mgivenq = {};
 
   var i, j;
-  for (i = 0; i < MESSAGES; i++){
-    mgivenq['m'+i] = {};
-    for (j = 0; j < STATES; j++){
-      mgivenq['m'+i]['q'+j] = 0.0;
+  for (i = 0; i < this.num_messages; i++){
+    mgivenq[this.codes.message+i] = {};
+    for (j = 0; j < this.num_states; j++){
+      if (sender_data[this.codes.state+j] && sender_data[this.codes.state+j][this.codes.message+i]){
+        mgivenq[this.codes.message+i][this.codes.state+j] = sender_data[this.codes.state+j][this.codes.message+i]
+      }
+      else {
+        mgivenq[this.codes.message+i][this.codes.state+j] = 0.0;
+      }
     }
   }
 
-  data.forEach(function (stratdata){
-    var maps = strategyToMaps(stratdata.strategy);
-
-    for (i = 0; i < STATES; i++){
-      mgivenq[maps.sender['q'+i]]['q'+i] += stratdata.proportion;
-    }
-  });
-
   return mgivenq;
-}
+};
 
-function generateQgivenM(mgivenq){
+Analyzer.prototype.generateQgivenM = function (mgivenq){
   var qgivenm = {};
   var prm = {};
 
   var i,j;
-  for (i = 0; i < MESSAGES; i++){
-    prm['m'+i] = 0.0;
+  for (i = 0; i < this.num_messages; i++){
+    prm[this.codes.message+i] = 0.0;
 
-    for (j = 0; j < STATES; j++){
-      prm['m'+i] += STATE_PROBS['q'+j] * mgivenq['m'+i]['q'+j];
+    for (j = 0; j < this.num_states; j++){
+      prm[this.codes.message+i] += this.state_probs[this.codes.state+j] * mgivenq[this.codes.message+i][this.codes.state+j];
     }
   }
 
-  for (i = 0; i < STATES; i++){
-    qgivenm['q'+i] = {};
-    for (j = 0; j < MESSAGES; j++){
-      if (prm['m'+j] > 0.0){
-        qgivenm['q'+i]['m'+j] = STATE_PROBS['q'+i] * mgivenq['m'+j]['q'+i] / prm['m'+j];
+  for (i = 0; i < this.num_states; i++){
+    qgivenm[this.codes.state+i] = {};
+    for (j = 0; j < this.num_messages; j++){
+      if (prm[this.codes.message+j] > 0.0){
+        qgivenm[this.codes.state+i][this.codes.message+j] = this.state_probs[this.codes.state+i] * mgivenq[this.codes.message+j][this.codes.state+i] / prm[this.codes.message+j];
       }
       else {
-        qgivenm['q'+i]['m'+j] = Number.NEGATIVE_INFINITY;
+        qgivenm[this.codes.state+i][this.codes.message+j] = Number.NEGATIVE_INFINITY;
       }
     }
   }
 
   return qgivenm;
-}
+};
 
-function J(message, state, str_qgivenm, pop_qgivenm){
+//here
+Analyzer.prototype.J = function (message, state, pop_qgivenm){
   if (pop_qgivenm[state][message] > 0.0){
+    /*
     if (str_qgivenm[state][message] == 0.0){
       return Number.NEGATIVE_INFINITY;
     }
     else {
       return Math.log(str_qgivenm[state][message] / pop_qgivenm[state][message]) / Math.LN2;
     }
+    */
+    return Math.log(1.0 / pop_qgivenm[state][message]) / Math.LN2;
   }
   else {
     return 0.0;
   }
-}
+};
 
-function misuseAgainstPop(message, state, strategy, pop){
-  var str_stratdata = strategyToStratdata(strategy)
-    , str_mgivenq = generateMgivenQ(str_stratdata)
-    , pop_mgivenq = generateMgivenQ(pop)
-    , str_qgivenm = generateQgivenM(str_mgivenq)
-    , pop_qgivenm = generateQgivenM(pop_mgivenq)
+Analyzer.prototype.misuse = function (sender_data, message, state){
+  var mgivenq = this.generateMgivenQ(sender_data)
+    , qgivenm = this.generateQgivenM(mgivenq)
     , states = []
     ;
 
   var i;
-  for (i = 0; i < STATES; i++){
-    states.push('q'+i);
+  for (i = 0; i < this.num_states; i++){
+    states.push(this.codes.state+i);
   }
 
-  return str_mgivenq[message][state] > 0 && J(message, state, str_qgivenm, pop_qgivenm) > 0 && _.any(states, function (statep){
-    return state != statep && J(message, statep, str_qgivenm, pop_qgivenm) < 0;
-  });
-}
+  var self = this;
 
-function deceptionAgainstReceiver(message, state, sender, receiver, pop, payoffs){
-  var misuse = misuseAgainstPop(message, state, sender, pop);
+  return mgivenq[message][state] > 0 && this.J(message, state, qgivenm) > 0 && _.any(states, function (statep){
+    return state != statep && self.J(message, statep, qgivenm) < 0;
+  });
+};
+
+Analyzer.prototype.deceptionAgainstReceiver = function (message, state, sender_maps, receiver_maps){
+  var misuse = this.misuseAgainstPop(message, state, sender_maps);
 
   if (misuse){
-    var receiver_maps = strategyToMaps(receiver).receiver
-      ;
-
     //misuse implies use
-    var action = receiver_maps[message]
-      , actual_payoffs = payoffs[state][action]
-      , best_action = 'a'+state.substring(1);
-      ;
+    var possible_actions = Object.keys(receiver_maps[message]);
 
-    //sender benefit
-    if (actual_payoffs[0] <= payoffs[state][best_action][0]){
-      return 0.0;
-    }
+    var pct = 0.0;
 
-    //receiver detriment
-    if (actual_payoffs[1] >= payoffs[state][best_action][1]){
-      return 0.0;
-    }
+    possible_actions.forEach(function (action){
+      var actual_payoffs = this.payoffs[state][action]
+        , best_action = this.best_responses[state]
+        ;
 
-    return 1.0;
+      //sender benefit
+      if (actual_payoffs[0] <= this.payoffs[state][best_action][0]){
+        return;
+      }
+
+      //receiver detriment
+      if (actual_payoffs[1] >= this.payoffs[state][best_action][1]){
+        return;
+      }
+
+      pct += receiver_maps[message][action];
+    });
+
+    return pct;
   }
   else {
     return 0;
   }
-}
+};
 
-function percentDeception(pop, payoffs_num){
-  if (pop.length == 1){
-    return 0;
+Analyzer.prototype.percentDeception = function (sender_maps, receiver_maps){
+  var pct = 0.0;
+  var i,j;
+
+  for (i = 0; i < this.num_states; i++){
+    for (j = 0; j < this.num_messages; j++){
+      pct += this.deceptionAgainstReceiver(this.codes.message+j, this.codes.state+i, sender_maps, receiver_maps)
+             * sender_maps[this.codes.state+i][this.codes.state+j]
+             * this.state_probs[this.codes.state+i];
+    }
   }
 
-  var payoffs = PAYOFF_SCHEMES[payoffs_num];
-
-  var pct = 0.0;
-
-  pop.forEach(function (sender){
-    pop.forEach(function (receiver){
-      var i,j;
-
-      for (i = 0; i < STATES; i++){
-        for (j = 0; j < MESSAGES; j++){
-          pct += deceptionAgainstReceiver('m'+j, 'q'+i, sender.strategy, receiver.strategy, pop, payoffs)
-                 * sender.proportion
-                 * receiver.proportion
-                 * STATE_PROBS['q'+i];
-        }
-      }
-    });
-  });
-
   return pct;
-}
+};

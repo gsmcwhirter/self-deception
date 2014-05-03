@@ -28,6 +28,7 @@ double max_payoff = 1.0;
 double inspect_prob = 0.85;
 double inspect_cost = 0.25;
 double prop_fitness_other = 1.0;
+double common_interest_prob = 0.5;
 
 rk_state rand_state;
 int rk_state_set = 0;
@@ -176,7 +177,17 @@ urnlearning_interaction(unsigned int players, urncollection_t **player_urns, rk_
     }
 
     unsigned int situation;
-    situation = (unsigned int)rk_interval(SITUATIONS - 1, rand_state_ptr); // - 1 b/c inclusive
+    double situation_draw;
+    situation_draw = rk_double(rand_state_ptr);
+    if (situation_draw < common_interest_prob){
+        //common interest
+        situation = 0;
+    }
+    else {
+        //partial common interest
+        situation = 1;
+    }
+    //situation = (unsigned int)rk_interval(SITUATIONS - 1, rand_state_ptr); // - 1 b/c inclusive
     unsigned int state;
     state = (unsigned int)rk_interval((*(player_urns + 0))->num_urns - 1, rand_state_ptr); // -1 b/c inclusive
     
@@ -334,6 +345,19 @@ handle_prop_fitness_other(command_t *self)
     }
 }
 
+static void
+handle_common_interest_prob(command_t *self)
+{
+    if (self->arg != NULL){
+        errno = 0;
+        common_interest_prob = strtod(self->arg, NULL);
+        if (errno || common_interest_prob < 0.0 || common_interest_prob > 1.0){
+            printf("Common interest probability is invalid.\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+}
+
 unsigned numDigits(const unsigned n) {
     if (n < 10) return 1;
     return 1 + numDigits(n / 10);
@@ -353,11 +377,13 @@ main(int argc, char *argv[])
     command_option(&options, "-p", "--inspect_prob <arg>", "probability of successful inspection (default 0.85)", handle_inspect_prob);
     command_option(&options, "-c", "--inspect_cost <arg>", "cost of inspection (default 0.25)", handle_inspect_cost);
     command_option(&options, "-o", "--other_fitness <arg>", "proportion of fitness generated from other-related interactions (default 1.0)", handle_prop_fitness_other);
+    command_option(&options, "-s", "--ci_prob <arg>", "probability of common interest situations (default 0.5)", handle_common_interest_prob);
     command_parse(&options, argc, argv);
 
     printf("Inspect probability: %g\n", inspect_prob);
     printf("Inspect cost: %g\n", inspect_cost);
     printf("Other-related fitness: %g\n", prop_fitness_other);
+    printf("Common-Interest Probability: %g\n", common_interest_prob);
     
     unsigned int num_players = 3;
     unsigned int *urn_counts = malloc(num_players * sizeof(unsigned int));

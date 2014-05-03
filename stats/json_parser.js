@@ -7,7 +7,7 @@ var args = require("optimist")
       .argv
   , fs = require("fs")
   , path = require("path")
-  , lib = require("./stats_lib")
+  , StatsAnalyzer = require("./stats_lib")
   , _ = require("underscore")
   ;
 
@@ -115,9 +115,39 @@ function parseStats(data){
   , all_totally_true_rep: {}
   , not_totally_true_rep: {}
   , not_mostly_true_rep: {}
+  , mixed_strat_rep: {}
   , inspecting_s0: {}
   , inspecting_s1: {}
   };
+
+  function determineParameters(dup){
+    var params = {
+      p: 0.0
+    , c: 0.0
+    , o: 0.0
+    , s: 0.5
+    };
+
+    //see if we're being called from a weird place
+
+    //being called from within the o-directory
+    var matches;
+    matches = process.cwd().match(/o_(.*)\.results/i);
+    if (matches){
+      params.o = parseFloat(matches[1]);
+    }
+
+    matches = args.stats.match(/p_(.*)_c_(.*\d)(?:\.[^\d]|$)/);
+    if (matches){
+      params.p = parseFloat(matches[1]);
+      params.c = parseFloat(matches[2]);
+    }
+
+    return params;
+  }
+
+  var params = determineParameters();
+  //console.log(params);
 
   data.forEach(function (dup){
     if (!dup){
@@ -154,6 +184,15 @@ function parseStats(data){
         if (ret.totally_true_rep[dup.file].length === states){
           ret.all_totally_true_rep[dup.file] = true;
         }
+      }
+
+      //is there a mixed strategy of representation?
+      if (Object.keys(dup.data.UMap[key]).length > 1 && _.filter(Object.keys(dup.data.UMap[key]), function (k){return dup.data.UMap[key][k] > 0.01}).length > 1){
+        if (!ret.mixed_strat_rep[dup.file]){
+          ret.mixed_strat_rep[dup.file] = [];
+        }
+
+        ret.mixed_strat_rep[dup.file].push(key);
       }
     }
 

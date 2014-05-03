@@ -1,8 +1,8 @@
 var path = require("path")
   , args = require("optimist")
-      .usage("$0 [--generator] [--parser] --dir <results_dir> --pmin <p_min> --pmax <p_max> --pstep <p_step> --cmin <c_min> --cmax <c_max> --cstep <c_step> --omin <o_min> --omax <o_max> --ostep <o_step>")
+      .usage("$0 [--generator] [--parser] --meta <types> --dir <results_dir> --pmin <p_min> --pmax <p_max> --pstep <p_step> --cmin <c_min> --cmax <c_max> --cstep <c_step> --omin <o_min> --omax <o_max> --ostep <o_step>")
       .demand(["dir"])
-      .alias({"dir": "d", "script": "s", "iterations": "i", "duplications": "N", "threads": "M", "generator": "g", "parser": "p"})
+      .alias({"dir": "d", "script": "s", "iterations": "i", "duplications": "N", "threads": "M", "generator": "g", "parser": "p", "meta":"m"})
       .default("pmin", 0.0)
       .default("pmax", 1.0)
       .default("pstep", 0.1)
@@ -25,12 +25,16 @@ var path = require("path")
                 , "omax": "The maximum o value."
                 , "ostep": "The step between generated o values."
                 , "generator": "Run the json_generator script"
-                , "parser": "Run the json_parser script"})
+                , "parser": "Run the json_parser script"
+                , "meta": "comma-separated list of properties to include in the meta-analysis"
+                })
       .argv
   , fs = require("fs")
   , cp = require("child_process")
   , script_path = ""
   , tasks = []
+  , metadata = {}
+  , metatasks = []
   ;      
 
 require("buffertools"); //monkey-patch
@@ -123,6 +127,8 @@ for (var o = args.omin; o <= args.omax; o += args.ostep){
         tasks.push({
           args: [path.resolve(path.join(__dirname,"json_parser.js")), "-s", basename + ".raw.json", "-o", basename + ".stats.json"]
         , odir: odir
+        , parser: true
+        , resultfile: basename + ".stats.json"
         });
       }
 
@@ -130,6 +136,7 @@ for (var o = args.omin; o <= args.omax; o += args.ostep){
         tasks.push({
           args: [path.resolve(path.join(__dirname,"json_generator.js")), "-o", basename + ".raw.json", "-d", basename + ".dir"]
         , odir: odir
+        , parser: false
         });
       }
     }
@@ -138,12 +145,37 @@ for (var o = args.omin; o <= args.omax; o += args.ostep){
 
 //console.log(tasks);
 
+if (args.meta){
+  var parts1 = args.meta.split(",");
+  parts1.forEach(function (part){
+    var parts2 = part.split(".");
+
+    var ind = -1;
+    switch (parts2[0]){
+      case "counts":
+        ind = 0;
+        break;
+      case "data":
+        ind = 1;
+        break;
+    }
+
+    if (ind !== -1){
+      metatasks.push([ind, parts2[1], part]);  
+    }
+    
+  });
+}
+
 execNextTask();
 
 function execNextTask(){
   var task = tasks.pop();
 
-  if (!task) return;
+  if (!task){
+    whenDone();
+    return;
+  } 
 
   console.log("Running node %s in %s", task.args.join(" "), task.odir);
  
@@ -154,8 +186,44 @@ function execNextTask(){
       console.log(stdout);
       console.log(stderr);
     }
+    else {
+      if (args.meta && task.parser){
+        var mrdir = path.join(task.odir, task.resultfile);
+        var results = require(path.resolve(mrdir));
+
+        try {
+          metatasks.forEach(function (mtask){
+            if (!metadata[mtask[2]]){
+              metadata[mtask[2]] = {};
+            }
+
+            metadata[mtask[2]][mrdir] = results[mtask[0]][mtask[1]];
+          });
+        }
+        catch (e){
+          console.error(e);
+        }
+      }
+    }
 
     process.nextTick(execNextTask);
+
     return;
   });
+}
+
+function whenDone(){
+  if (args.meta && args.parser){
+    var wstream = fs.createWriteStream(path.resolve(path.join(args.dir, "metaresults.json")));
+    wstream.on("error", function (err){
+      console.log("Write stream error:");
+      console.log(err);
+    });
+
+    wstream.on("open", function (){
+      wstream.end(JSON.stringify(metadata, null, 2), "utf8", function (){
+        console.log("Meta-Stats written successfully.");
+      });
+    });
+  }
 }

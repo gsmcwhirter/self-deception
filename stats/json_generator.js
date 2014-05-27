@@ -2,7 +2,7 @@ var args = require("optimist")
       .usage("$0 --out <outfile> --dir <results_dir> [--tol <tolerance>]")
       .demand(["out", "dir"])
       .alias({"out": "o", "dir": "d", "tol": "t"})
-      .default("tol", 0.0005)
+      .default("tol", 0.005)
       .describe({ "out": "The file to output with statistics."
                 , "dir": "The directory, tar, or tar.gz containing the .out files from a simulation run."
                 , "tol": "Tolerance for counting as non-zero."})
@@ -13,6 +13,7 @@ var args = require("optimist")
   , util = require("util")
   , tar = require("tar")
   , gzbz = require("gzbz/streaming")
+  , _ = require("underscore")
   ;      
 
 require("buffertools"); //monkey-patch
@@ -188,16 +189,19 @@ StatsAction.prototype.act = function (rstream, filename){
     var i, j;
     for (i = 0; i < states; i++){
       retData.UMap['q' + i] = {};
-      retData.CMap['q' + i] = {}; //was r
       for (j = 0; j < situations; j++){
-        retData.CMap['q' + i]['s' + j] = {}; //was r
+        if (!retData.CMap['s' + j]){
+          retData.CMap['s' + j] = {};
+        }
+  
+        retData.CMap['s' + j]['q' + i] = {}; //was r
       }
     }
     
-    for (i = 0; i < messages; i++){
-      retData.RMap['m' + i] = {};
-      for (j = 0; j < situations; j++){
-        retData.RMap['m' + i]['s' + j] = {};
+    for (j = 0; j < situations; j++){
+      retData.RMap['s' + j] = {};
+      for (i = 0; i < messages; i++){
+        retData.RMap['s' + j]['m' + i] = {};
       }
     }
         
@@ -207,6 +211,12 @@ StatsAction.prototype.act = function (rstream, filename){
           retData.UMap['q' + q]['q' + r] = prop; //was r (second)
         }
       });
+
+      var total = _.reduce(retData.UMap['q' + q], function (memo, val){ return memo + val; }, 0.0);
+
+      for (var key in retData.UMap['q' + q]){
+        retData.UMap['q' + q][key] /= total; 
+      }
     });
     
     players[1].proportions.forEach(function (props, rs){
@@ -215,20 +225,32 @@ StatsAction.prototype.act = function (rstream, filename){
     
       props.forEach(function (prop, m){
         if (prop > tolerance){
-          retData.CMap['q' + r]['s' + s]['m' + m] = prop; //was r
+          retData.CMap['s' + s]['q' + r]['m' + m] = prop; //was r
         }
       });
-    });
-    
+
+      var total = _.reduce(retData.CMap['s' + s]['q' + r], function (memo, val){ return memo + val; }, 0.0);
+
+      for (var key in retData.CMap['s' + s]['q' + r]){
+        retData.CMap['s' + s]['q' + r][key] /= total; 
+      }
+    });    
+
     players[2].proportions.forEach(function (props, ms){
       var s = ms >= messages ? 1 : 0;
       var m = ms - (s * messages);
       
       props.forEach(function (prop, a){
         if (prop > tolerance){
-          retData.RMap['m' + m]['s' + s]['a' + a] = prop;
+          retData.RMap['s' + s]['m' + m]['a' + a] = prop;
         }
       });
+
+      var total = _.reduce(retData.RMap['s' + s]['m' + m], function (memo, val){ return memo + val; }, 0.0);
+
+      for (var key in retData.RMap['s' + s]['m' + m]){
+        retData.RMap['s' + s]['m' + m][key] /= total; 
+      }
     });
 
     return retData;
@@ -254,7 +276,16 @@ var wstream
     }
   ;
 
-if (fs.statSync(args.dir).isDirectory()){
+try {
+  var stat = fs.statSync(args.dir);  
+}
+catch (e){
+  console.log("Could not find directory or tar: %s", args.dir);
+  process.exit(-1);
+}
+
+
+if (stat.isDirectory()){
   fs.readdir(args.dir, function (err, files){
     if (err){
       console.log("Error reading the output directory.");

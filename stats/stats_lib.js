@@ -130,14 +130,7 @@ InformationAnalyzer.prototype.misuse = function (sender_data, pop_data, message,
 
   var self = this;
 
-  // console.log(message);
-  // console.log(state);
-  // console.log(mgivenq[message][state]);
-  // console.log(this.J(message, state, qgivenm));
-
   return sdr_mgivenq[message][state] > 0 && this.J(message, state, pop_qgivenm, sdr_qgivenm) > 0 && _.any(states, function (statep){
-    //console.log(self.J(message, statep, qgivenm));
-    //return state != statep && self.J(message, statep, qgivenm) < 0;
     return state != statep && self.J(message, statep, pop_qgivenm, sdr_qgivenm) < 0;
   });
 };
@@ -320,20 +313,11 @@ SelfDeceptionAnalyzer.prototype.deceptionOnMessages = function (repr, state, sit
               }
             })
           ;
-        // console.log("Details");
-        // console.log(actual_payoffs);
-        // console.log(best_message);
-        // console.log(best_message_payoffs);
 
         //sender benefit
         if (actual_payoffs[0] > best_message_payoffs[0] && repr !== state){
           pcts[msg][act] = c_maps[sit][repr][msg] * self.uc_payoffs_byaction[sit][state][msg][act].probability;
         }
-
-        //receiver detriment -- strange for self-deception calculation
-        // if (actual_payoffs[1] >= best_action_payoffs[1]){
-        //   return;
-        // }
       }
     }
 
@@ -355,8 +339,7 @@ function ExtDeceptionAnalyzer(num_states, num_messages, num_actions, num_situati
   this.states = [];
   this.messages = [];
   this.actions = [];
-  this.situations = [];
-  this.inspect_prob = inspect_prob;
+  this.situations = []; 
   this.inspect_cost = inspect_cost;
 
   this.cr_payoffs = base_cr_payoffs;
@@ -400,7 +383,7 @@ ExtDeceptionAnalyzer.prototype.calculateBestActions = function (){
       best_actions[sit][state] = [];
 
       self.actions.forEach(function (act){
-        var poffs;
+        var poffs = [-1,-1,-1];
         if (act !== 'a3'){
           poffs = self.cr_payoffs[sit][state][act];
         }
@@ -426,9 +409,9 @@ ExtDeceptionAnalyzer.prototype.deception = function (msg, state, sit, c_maps, r_
   var pcts = {};
   var self = this;
 
-  var possible_acts = Object.keys(c_maps[sit][msg]);
+  var possible_acts = Object.keys(r_maps[sit][msg]);
   var best_actions = this.best_actions[sit][state];
-    
+
   possible_acts.forEach(function (act){
     pcts[act] = {};
     var act_add = '';
@@ -440,33 +423,23 @@ ExtDeceptionAnalyzer.prototype.deception = function (msg, state, sit, c_maps, r_
         var actual_payoffs = _.clone(self.cr_payoffs[sit][state][rand_act]);
         actual_payoffs[2] -= self.inspect_cost;
 
-        var deceptions = _real_deception(best_actions, actual_payoffs);
+        pcts[act][rand_act] = _real_deception(best_actions, actual_payoffs);
 
-        deceptions.forEach(function (dec_ba){
-          if (!pcts[act][state]){
-            pcts[act][state] = {};
-          }
-
-          if (!pcts[act][state][rand_act]){
-            pcts[act][state][rand_act] = []
-          }
-
-          pcts[act][state][rand_act].push({best_action: dec_ba});  
-        });
       });
+
+      if (Object.keys(pcts[act]).length === 0 || _.all(pcts[act], function (ra_data, ra){ return ra_data.length === 0; })){
+        delete pcts[act];
+      }
     }
     else {
       var actual_payoffs = self.cr_payoffs[sit][state][act];
 
-      var deceptions = _real_deception(best_actions, actual_payoffs);
+      pcts[act] = _real_deception(best_actions, actual_payoffs);
 
-      deceptions.forEach(function (dec_ba){
-        if (!pcts[act][state]){
-          pcts[act][state] = [];
-        }
+      if (pcts[act].length === 0){
+        delete pcts[act];
+      }
 
-        pcts[act][state].push({best_action: dec_ba});  
-      });
     }
 
 
@@ -474,15 +447,11 @@ ExtDeceptionAnalyzer.prototype.deception = function (msg, state, sit, c_maps, r_
       var rets = [];
       best_acts.forEach(function (best_action){
         if (actual_payoffs[1] > best_action.payoffs[1] && actual_payoffs[2] < best_action.payoffs[2]){
-          rets.push(best_action);
+          rets.push(best_action.best_action);
         }
       });
 
       return rets;
-    }
-
-    if (Object.keys(pcts[act]).length === 0){
-      delete pcts[act];
     }
   });
 

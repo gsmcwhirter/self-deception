@@ -78,6 +78,8 @@ function parseStats(data){
   , other_misuse_s1: {} //External misuse? (loop)
   , other_deception_s0: {}
   , other_deception_s1: {}
+  , other_deception_s0_a3_correct: {}
+  , other_deception_s1_a3_correct: {}
   };
 
   function determineParameters(dup){
@@ -250,41 +252,55 @@ function parseStats(data){
         rep_probs[r] += dup.data.UMap[st][r] * state_probs[st];
       }
     }
+
     var sit, siti, stai;
+    var pure_sender_strats;
+    var rep, msg;
+    var misuse_rep_msg;
     var external_analyzer = new sl.InformationAnalyzer(states, messages, rep_probs, {state: 'q', message: 'm'});
     var dec_analyzer = new sl.ExtDeceptionAnalyzer(states, messages, actions, situations, params.c, base_payoffs, dup.data.RMap);
     for (siti = 0; siti < situations; siti++){
       sit = 's'+siti;
-      var pure_sender_strats = external_analyzer.generatePureSenderStrategies(dup.data.CMap[sit]);
+      pure_sender_strats = external_analyzer.generatePureSenderStrategies(dup.data.CMap[sit]);
 
-      for (var rep in dup.data.CMap[sit]){
-        for (var msg in dup.data.CMap[sit][rep]){
-          pure_sender_strats.forEach(function (sender_data){
+      for (rep in dup.data.CMap[sit]){
+        for (msg in dup.data.CMap[sit][rep]){
+          misuse_rep_msg = pure_sender_strats.some(function (sender_data){
             if (external_analyzer.misuse(sender_data, dup.data.CMap[sit], msg, rep)){
-              if (!ret["other_misuse_"+sit][dup.file]){
-                ret["other_misuse_"+sit][dup.file] = []
-              }
+              return true;
+            }
+          });
 
-              ret["other_misuse_"+sit][dup.file].push({sender_strat: sender_data, representation: rep, message: msg, probability: dup.data.CMap[sit][rep][msg]});
+          if (misuse_rep_msg){
+            if (!ret["other_misuse_"+sit][dup.file]){
+              ret["other_misuse_"+sit][dup.file] = {}
+            }
 
-              //External deception? there is misuse -- check for deception
-              for (stai = 0; stai < states; stai++){
-                st = 'q'+stai;
-                //that representation is used in that state
-                if (dup.data.UMap[st][rep] > 0.0){
-                  var dec_data = dec_analyzer.deception(msg, st, sit, dup.data.CMap, dup.data.RMap);
-                  if (Object.keys(dec_data).length > 0){
-                    for (var sitkey in dec_data){
-                      if (!ret["other_deception_"+sitkey][dup.file]){
-                        ret["other_deception_"+sitkey][dup.file] = [];
-                      }
-                      ret["other_deception_"+sitkey][dup.file].push({state: st, representation: r, message: msg, data: dec_data[sit]})
-                    }
+            ret["other_misuse_"+sit][dup.file][rep+"-"+msg] = dup.data.CMap[sit][rep][msg]; 
+            // ret["other_misuse_"+sit][dup.file].push({sender_strat: sender_data, representation: rep, message: msg, probability: dup.data.CMap[sit][rep][msg]});
+
+            //External deception? there is misuse -- check for deception
+            for (stai = 0; stai < states; stai++){
+              st = 'q'+stai;
+              //that representation is used in that state
+              if (dup.data.UMap[st][rep] > 0.0){
+                var dec_data = dec_analyzer.deception(msg, st, sit, dup.data.CMap, dup.data.RMap);
+                if (Object.keys(dec_data).length > 0){
+                  if (!ret["other_deception_"+sit][dup.file]){
+                    ret["other_deception_"+sit][dup.file] = {};
+                  }
+                  //ret["other_deception_"+sit][dup.file][st+"-"+r+"-"+msg].push({state: st, representation: r, message: msg, data: dec_data});
+                  if (!ret["other_deception_"+sit][dup.file][st+"-"+r+"-"+msg]){
+                    ret["other_deception_"+sit][dup.file][st+"-"+r+"-"+msg] = {};
+                  }
+
+                  for (var act in dec_data){
+                    ret["other_deception_"+sit][dup.file][st+"-"+r+"-"+msg][act] = dec_data[act];  
                   }
                 }
               }
             }
-          });
+          }
         }
       }
     }

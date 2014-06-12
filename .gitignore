@@ -30,3 +30,5 @@ node_modules
 *.dir.tar
 *.dir.tar.gz
 *.log
+
+results_s_0.5

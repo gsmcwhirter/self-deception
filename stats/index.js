@@ -2,7 +2,7 @@ var path = require("path")
   , args = require("optimist")
       .usage("$0 [--generator] [--parser] --meta <types> --dir <results_dir> --pmin <p_min> --pmax <p_max> --pstep <p_step> --cmin <c_min> --cmax <c_max> --cstep <c_step> --omin <o_min> --omax <o_max> --ostep <o_step> --smin <s_min> --smax <s_max> --sstep <s_step>")
       .demand(["dir"])
-      .alias({"dir": "d", "script": "s", "iterations": "i", "duplications": "N", "threads": "M", "generator": "g", "parser": "p", "meta":"m"})
+      .alias({"dir": "d", "script": "s", "iterations": "i", "duplications": "N", "threads": "M", "generator": "g", "parser": "p", "meta":"m", "verbose": "v"})
       .default("pmin", 0.0)
       .default("pmax", 1.0)
       .default("pstep", 0.1)
@@ -17,6 +17,7 @@ var path = require("path")
       .default("sstep", 0.25)
       .boolean("generator")
       .boolean("parser")
+      .boolean("verbose")
       .describe({ "dir": "The directory to output the results to."
                 , "pmin": "The minimum p value (inclusive)."
                 , "pmax": "The maximum p value."
@@ -41,7 +42,7 @@ var path = require("path")
   , tasks = []
   , metadata = {}
   , metatasks = []
-  ;      
+  ;
 
 require("buffertools"); //monkey-patch
 
@@ -121,15 +122,15 @@ for (var s = args.smin; s <= args.smax; s += args.sstep){
   if (s == 0.9999999999999999) s = 1;
   var sstr = ((s == 1 || s == 0.0) ? s + ".0" : Math.round10(s, -3) + "");
 
-  for (var o = args.omin; o <= args.omax; o += args.ostep){
-    if (o == 0.9999999999999999) o = 1;
+  for (var o = args.omin; o <= args.omax + 0.0000000000000003; o += args.ostep){
+    if (o == 0.9999999999999999 || o > 1) o = 1;
     var ostr = ((o == 1 || o == 0.0) ? o + ".0" : Math.round10(o, -3) + "");
 
     for (var p = args.pmin; p <= args.pmax; p += args.pstep){
       if (p == 0.9999999999999999) p = 1;
       var pstr = ((p == 1 || p == 0.0) ? p + ".0" : Math.round10(p, -3) + "");
 
-      for (var c = args.cmin; c <= args.cmax; c += args.cstep){  
+      for (var c = args.cmin; c <= args.cmax; c += args.cstep){
         if (c == 0.9999999999999999) c = 1;
         var cstr = ((c == 1 || c == 0.0) ? c + ".0" : Math.round10(c, -3) + "");
 
@@ -177,11 +178,13 @@ if (args.meta){
     }
 
     if (ind !== -1){
-      metatasks.push([ind, parts2[1], part]);  
+      metatasks.push([ind, parts2[1], part]);
     }
-    
+
   });
 }
+
+console.log(metatasks);
 
 execNextTask();
 
@@ -191,10 +194,10 @@ function execNextTask(){
   if (!task){
     whenDone();
     return;
-  } 
+  }
 
   console.log("Running node %s in %s", task.args.join(" "), task.odir);
- 
+
   cp.execFile("node", task.args, {
     cwd: path.resolve(task.odir)
   }, function (err, stdout, stderr){
@@ -203,12 +206,18 @@ function execNextTask(){
       console.log(stderr);
     }
     else {
+      if (args.verbose){
+        console.log(stdout);
+      }
+
       if (args.meta && task.parser){
         var mrdir = path.join(task.odir, task.resultfile);
 
         var results;
         try {
-          results = require(path.resolve(mrdir));
+          results = fs.readFileSync(path.resolve(mrdir), {encoding: "utf8"});
+          results = JSON.parse(results);
+          //results = require(path.resolve(mrdir));
         } catch (e) {
           results = null;
         }
@@ -216,11 +225,47 @@ function execNextTask(){
         if (results !== null){
           try {
             metatasks.forEach(function (mtask){
-              if (!metadata[mtask[2]]){
-                metadata[mtask[2]] = {};
-              }
+              if (mtask[1] === "*"){
+                for (var mt1 in results[mtask[0]]){
+                  var mt2 = ((mtask[0] === 1) ? "data" : "counts") + "." + mt1;
+                  if (!metadata[mt2]){
+                    metadata[mt2] = {};
+                  }
 
-              metadata[mtask[2]][mrdir] = results[mtask[0]][mtask[1]];
+                  metadata[mt2][mrdir] = results[mtask[0]][mt1];
+                }
+              }
+              else if (mtask[1] === "[default]"){
+                [ "all_mostly_true_rep"
+                , "all_totally_true_rep"
+                , "inspecting_s0"
+                , "inspecting_s1"
+                , "self_deception_s0"
+                , "self_deception_s1"
+                , "conscious_deception_s1"
+                , "conscious_deception_s1_a3_correct"
+                , "conscious_deception_s1_a3_correct_self"
+                , "whole_deception_s1"
+                , "whole_deception_s1_a3"
+                , "whole_deception_s1_fromConscious"
+                , "whole_deception_s1_fromSelf"
+                , "whole_deception_s1_fromBoth"
+                , "whole_deception_s1_fromNeither"].forEach(function (mt1){
+                  var mt2 = ((mtask[0] === 1) ? "data" : "counts") + "." + mt1;
+                  if (!metadata[mt2]){
+                    metadata[mt2] = {};
+                  }
+
+                  metadata[mt2][mrdir] = results[mtask[0]][mt1];
+                });
+              }
+              else {
+                if (!metadata[mtask[2]]){
+                  metadata[mtask[2]] = {};
+                }
+
+                metadata[mtask[2]][mrdir] = results[mtask[0]][mtask[1]];
+              }
             });
           }
           catch (e){

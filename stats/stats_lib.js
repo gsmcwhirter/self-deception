@@ -63,14 +63,14 @@ InformationAnalyzer.prototype.generateQgivenM = function (mgivenq){
 
 InformationAnalyzer.prototype.J = function (message, state, pop_qgivenm, str_qgivenm){
   if (pop_qgivenm[state][message] > 0.0){
-    
+
     if (str_qgivenm[state][message] == 0.0){
       return Number.NEGATIVE_INFINITY;
     }
     else {
       return Math.log(str_qgivenm[state][message] / pop_qgivenm[state][message]) / Math.LN2;
     }
-    
+
     //return Math.log(1.0 / pop_qgivenm[state][message]) / Math.LN2;
   }
   else {
@@ -152,7 +152,7 @@ function SelfDeceptionAnalyzer(num_states, num_messages, num_actions, num_situat
   this.uc_payoffs = base_uc_payoffs;
 
   var i;
-  
+
   for (i = 0; i < num_states; i++){
     this.states.push(this.codes.state+i);
   }
@@ -168,7 +168,7 @@ function SelfDeceptionAnalyzer(num_states, num_messages, num_actions, num_situat
   for (i = 0; i < num_situations; i++){
     this.situations.push(this.codes.situation+i);
   }
-  
+
   this.uc_payoffs_byaction = this.calculateByActionUCPayoffs(receiver_maps);
   this.best_messages = this.calculateBestMessages(receiver_maps);
 }
@@ -243,15 +243,15 @@ SelfDeceptionAnalyzer.prototype.calculateBestMessages = function (receiver_maps)
     best_messages[sit] = {};
 
     self.states.forEach(function (state){
-      best_messages[sit][state] = _.max(_.map(payoffs[sit][state], function (msg_obj, msg){ 
+      best_messages[sit][state] = _.max(_.map(payoffs[sit][state], function (msg_obj, msg){
         var avg_payoffs = [0.0, 0.0];
         var poffs;
         for (var act in msg_obj){
           poffs = msg_obj[act];
           avg_payoffs[0] += poffs.probability * poffs.payoffs[0];
-          avg_payoffs[1] += poffs.probability * poffs.payoffs[1];  
+          avg_payoffs[1] += poffs.probability * poffs.payoffs[1];
         }
-        return {message: msg, payoffs: avg_payoffs}; 
+        return {message: msg, payoffs: avg_payoffs};
       }), function (item){ return item.payoffs[1]; });
     });
   });
@@ -272,7 +272,7 @@ SelfDeceptionAnalyzer.prototype.deceptionOnMessagesAndSituations = function (rep
     // console.log("SitPcts:");
     // console.log(sitpcts);
     if (Object.keys(sitpcts).length > 0){
-      pcts[sit] = sitpcts;  
+      pcts[sit] = sitpcts;
     }
   });
 
@@ -290,12 +290,12 @@ SelfDeceptionAnalyzer.prototype.deceptionOnMessages = function (repr, state, sit
   var possible_msgs = Object.keys(c_maps[sit][repr]);
   // console.log("PossibleMsgs");
   // console.log(possible_msgs);
-    
+
   possible_msgs.forEach(function (msg){
     pcts[msg] = {};
     for (var act in self.uc_payoffs_byaction[sit][state][msg]){
       if (self.uc_payoffs_byaction[sit][state][msg][act].probability > 0.0){
-        var actual_payoffs = _.map(self.uc_payoffs_byaction[sit][state][msg][act].payoffs, function (payoff){ 
+        var actual_payoffs = _.map(self.uc_payoffs_byaction[sit][state][msg][act].payoffs, function (payoff){
               if (state === repr){
                 return payoff + self.decision_contrib;
               }
@@ -329,7 +329,7 @@ SelfDeceptionAnalyzer.prototype.deceptionOnMessages = function (repr, state, sit
   return pcts;
 };
 
-function ExtDeceptionAnalyzer(num_states, num_messages, num_actions, num_situations, inspect_cost, base_cr_payoffs, unconscious_maps, codes){
+function ExtDeceptionAnalyzer(num_states, num_messages, num_actions, num_situations, inspect_prob, inspect_cost, base_cr_payoffs, unconscious_maps, codes){
   this.codes = codes || {};
   if (!this.codes.state) this.codes.state = 'q';
   if (!this.codes.message) this.codes.message = 'm';
@@ -339,22 +339,23 @@ function ExtDeceptionAnalyzer(num_states, num_messages, num_actions, num_situati
   this.states = [];
   this.messages = [];
   this.actions = [];
-  this.situations = []; 
+  this.situations = [];
+  this.inspect_prob = inspect_prob;
   this.inspect_cost = inspect_cost;
 
   this.cr_payoffs = base_cr_payoffs;
 
-  this.repr_probs = {};
+  //this.repr_probs = {};
 
   var i;
-  
+
   for (i = 0; i < num_states; i++){
     this.states.push(this.codes.state+i);
 
-    this.repr_probs[this.codes.state+i] = 0.0;
-    for (var state in unconscious_maps){
-      this.repr_probs[this.codes.state+i] += unconscious_maps[state][this.codes.state+i] / num_states;
-    }
+    // this.repr_probs[this.codes.state+i] = 0.0;
+    // for (var state in unconscious_maps){
+    //   this.repr_probs[this.codes.state+i] += unconscious_maps[state][this.codes.state+i] / num_states;
+    // }
   }
 
   for (i = 0; i < num_messages; i++){
@@ -368,7 +369,7 @@ function ExtDeceptionAnalyzer(num_states, num_messages, num_actions, num_situati
   for (i = 0; i < num_situations; i++){
     this.situations.push(this.codes.situation+i);
   }
-  
+
   this.best_actions = this.calculateBestActions();
 }
 
@@ -388,7 +389,7 @@ ExtDeceptionAnalyzer.prototype.calculateBestActions = function (){
           poffs = self.cr_payoffs[sit][state][act];
         }
         else {
-
+          //pass -- a3 is never any better than another action given knowledge of the actual state of the world.
         }
 
         if (best_actions[sit][state].length === 0 || best_actions[sit][state][0].payoffs[2] === poffs[2]){
@@ -402,6 +403,17 @@ ExtDeceptionAnalyzer.prototype.calculateBestActions = function (){
   });
 
   return best_actions;
+};
+
+function _real_deception(best_acts, actual_payoffs){
+  var rets = [];
+  best_acts.forEach(function (best_action){
+    if (actual_payoffs[1] > best_action.payoffs[1] && actual_payoffs[2] < best_action.payoffs[2]){
+      rets.push(best_action.action);
+    }
+  });
+
+  return rets;
 }
 
 ExtDeceptionAnalyzer.prototype.deception = function (msg, state, sit, c_maps, r_maps){
@@ -423,7 +435,11 @@ ExtDeceptionAnalyzer.prototype.deception = function (msg, state, sit, c_maps, r_
         var actual_payoffs = _.clone(self.cr_payoffs[sit][state][rand_act]);
         actual_payoffs[2] -= self.inspect_cost;
 
-        pcts[act][rand_act] = _real_deception(best_actions, actual_payoffs);
+        var tmp = _real_deception(best_actions, actual_payoffs);
+
+        if (tmp.length){
+          pcts[act][rand_act] = tmp.slice(0);
+        }
 
       });
 
@@ -440,18 +456,6 @@ ExtDeceptionAnalyzer.prototype.deception = function (msg, state, sit, c_maps, r_
         delete pcts[act];
       }
 
-    }
-
-
-    function _real_deception(best_acts, actual_payoffs){
-      var rets = [];
-      best_acts.forEach(function (best_action){
-        if (actual_payoffs[1] > best_action.payoffs[1] && actual_payoffs[2] < best_action.payoffs[2]){
-          rets.push(best_action.best_action);
-        }
-      });
-
-      return rets;
     }
   });
 

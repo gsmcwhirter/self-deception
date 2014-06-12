@@ -164,6 +164,289 @@ function parseStats(data){
     }
   }
 
+  function internalMixing(UMap, file){
+    for (var key in UMap){
+      //Internal mixing? is there a mixed strategy of representation?
+      if (Object.keys(UMap[key]).length > 1 && _.filter(Object.keys(UMap[key]), function (k){return UMap[key][k] > 0.005}).length > 1){
+        if (!ret.mixed_strat_rep[file]){
+          ret.mixed_strat_rep[file] = [];
+        }
+
+        ret.mixed_strat_rep[file].push(key);
+      }
+    }
+  }
+
+  function externalMixing(sit, CMap, file){
+    for (var key in CMap[sit]){
+      //is there a mixed strategy of representation?
+      if (Object.keys(CMap[sit][key]).length > 1 && _.filter(Object.keys(CMap[sit][key]), function (k){return CMap[sit][key][k] > 0.005}).length > 1){
+        if (!ret["mixed_strat_"+sit][file]){
+          ret["mixed_strat_"+sit][file] = [];
+        }
+
+        ret["mixed_strat_"+sit][file].push(key);
+      }
+    }
+  }
+
+  function inspecting(sit, RMap, file){
+    for (var key in RMap[sit]){
+      //given key message, does the receiver inspect a fair bit?
+      if (RMap[sit][key]['a3'] && RMap[sit][key]['a3'] > 0.01){
+        if (!ret["inspecting_"+sit][file]){
+          ret["inspecting_"+sit][file] = [];
+        }
+
+        ret["inspecting_"+sit][file].push([key, RMap[sit][key]['a3']]);
+      }
+    }
+  }
+
+  function internalMisuseDeception(base_payoffs, params, file, UMap, CMap, RMap){
+    //Internal misuse? check for internal misuse of representations
+    var internal_analyzer = new sl.InformationAnalyzer(states, states, state_probs, {state: 'q', message: 'q'});
+    var sd_analyzer = new sl.SelfDeceptionAnalyzer(states, messages, actions, situations, params.p, 1.0-params.o, base_payoffs, RMap);
+    var pure_sender_strats = internal_analyzer.generatePureSenderStrategies(UMap);
+    var misuse;
+    for (var st in UMap){
+      for (var r in UMap[st]){
+        misuse = false;
+        pure_sender_strats.forEach(function (sender_data){
+          if (internal_analyzer.misuse(sender_data, UMap, r, st)){
+            if (!ret.internal_misuse[file]){
+              ret.internal_misuse[file] = []
+            }
+
+            ret.internal_misuse[file].push({sender_strat: sender_data, state: st, representation: r, probability: UMap[st][r]});
+            misuse = true;
+          }
+        });
+
+        if (misuse){
+          //Self-Deception? there is misuse -- check for self-deception
+          var sit_dec_data = sd_analyzer.deceptionOnMessagesAndSituations(r, st, UMap, CMap);
+          if (Object.keys(sit_dec_data).length > 0){
+            for (var sitkey in sit_dec_data){
+              if (!ret["self_deception_"+sitkey][file]){
+                ret["self_deception_"+sitkey][file] = [];
+              }
+
+              ret["self_deception_"+sitkey][file].push({state: st, representation: r, messages: sit_dec_data[sitkey]});
+            }
+          }
+        }
+      }
+    }
+  }
+
+  function consciousMisuseDeception(base_payoffs, params, file, UMap, CMap, RMap){
+    var rep_probs = {'q0': 0.0, 'q1': 0.0, 'q2': 0.0};
+    for (var st in UMap){
+      for (var r in UMap[st]){
+        rep_probs[r] += UMap[st][r] * state_probs[st];
+      }
+    }
+
+    var external_analyzer = new sl.InformationAnalyzer(states, messages, rep_probs, {state: 'q', message: 'm'});
+    var dec_analyzer = new sl.ExtDeceptionAnalyzer(states, messages, actions, situations, params.p, params.c, base_payoffs);
+    var sit;
+    var pure_sender_strats;
+    var misuse_rep_msg;
+    var st;
+    var dec_data;
+    var push_data;
+
+    for (var siti = 0; siti < situations; siti++){
+      sit = 's'+siti;
+      pure_sender_strats = external_analyzer.generatePureSenderStrategies(CMap[sit]);
+
+      for (var rep in CMap[sit]){
+        for (var msg in CMap[sit][rep]){
+          misuse_rep_msg = pure_sender_strats.some(function (sender_data){
+            if (external_analyzer.misuse(sender_data, CMap[sit], msg, rep)){
+              return true;
+            }
+          });
+
+          if (misuse_rep_msg){
+            if (!ret["conscious_misuse_"+sit][file]){
+              ret["conscious_misuse_"+sit][file] = {}
+            }
+
+            ret["conscious_misuse_"+sit][file][rep+"-"+msg] = CMap[sit][rep][msg];
+
+            //External deception? there is misuse -- check for deception
+            for (var stai = 0; stai < states; stai++){
+              st = 'q'+stai;
+              //that representation is used in that state
+              if (UMap[st][rep] > 0.0){
+                dec_data = dec_analyzer.deception(msg, st, sit, CMap, RMap);
+
+                if (Object.keys(dec_data).length > 0){
+                  //yes, there is deception
+
+                  if (!ret["conscious_deception_"+sit][file]){
+                    ret["conscious_deception_"+sit][file] = {};
+                  }
+
+                  if (!ret["conscious_deception_"+sit][file][st+"-"+rep+"-"+msg]){
+                    ret["conscious_deception_"+sit][file][st+"-"+rep+"-"+msg] = {};
+                  }
+
+                  for (var act in dec_data){
+                    ret["conscious_deception_"+sit][file][st+"-"+rep+"-"+msg][act] = dec_data[act];
+
+                    //Deception when correctly inspecting?
+                    // is this a case of inspecting and is the inspection correct?
+                    if (act === "a3" && dec_data[act]['a'+rep.substring(1)]){
+                      if (!ret["conscious_deception_"+sit+"_a3_correct"][file]){
+                        ret["conscious_deception_"+sit+"_a3_correct"][file] = [];
+                      }
+
+                      push_data = {state: st, representation: rep, message: msg, a3action: 'a'+rep.substring(1)};
+                      ret["conscious_deception_"+sit+"_a3_correct"][file].push(push_data);
+
+                      //Self-and-other deception?
+                      if (_.filter(ret["self_deception_"+sit][file], function (sditem){ return sditem.state === st && sditem.representation === r}).length){
+                        if (!ret["conscious_deception_"+sit+"_a3_correct_self"][file]){
+                          ret["conscious_deception_"+sit+"_a3_correct_self"][file] = [];
+                        }
+
+                        ret["conscious_deception_"+sit+"_a3_correct_self"][file].push(push_data);
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+  }
+
+  function wholeMisuseDeception(base_payoffs, params, file, UMap, CMap, RMap){
+    var whole_analyzer = new sl.InformationAnalyzer(states, messages, state_probs, {state: 'q', message: 'm'});
+    var whole_dec_analyzer = new sl.ExtDeceptionAnalyzer(states, messages, actions, situations, params.p, params.c, base_payoffs);
+
+    var sit;
+    var wholeMap = {s0: {}, s1: {}};
+    for (var siti = 0; siti < situations; siti++){
+      sit = 's'+siti;
+
+      for (var ustate in UMap){
+        wholeMap[sit][ustate] = wholeMap[sit][ustate] || {};
+        for (var urep in UMap[ustate]){
+          for (var cmsg in CMap[sit][urep]){
+            wholeMap[sit][ustate][cmsg] = (wholeMap[sit][ustate][cmsg] || 0) + UMap[ustate][urep] * CMap[sit][urep][cmsg];
+          }
+        }
+      }
+    }
+
+    var whole_pure_sender_strats;
+    var misuse_sta_msg;
+    var whole_dec_data;
+    var maybe_both;
+    var maybe_neither;
+
+    for (var siti = 0; siti < situations; siti++){
+      //Whole misuse?
+      whole_pure_sender_strats = whole_analyzer.generatePureSenderStrategies(wholeMap[sit]);
+      for (var sta in wholeMap[sit]){
+        for (var msg in wholeMap[sit][sta]){
+          misuse_sta_msg = whole_pure_sender_strats.some(function (sender_data){
+            if (whole_analyzer.misuse(sender_data, wholeMap[sit], msg, sta)){
+              return true;
+            }
+          });
+
+          if (misuse_sta_msg){
+            if (!ret["whole_misuse_"+sit][file]){
+              ret["whole_misuse_"+sit][file] = {}
+            }
+
+            ret["whole_misuse_"+sit][file][sta+"-"+msg] = wholeMap[sit][sta][msg];
+
+            //Whole deception? there is misuse -- check for deception
+            whole_dec_data = whole_dec_analyzer.deception(msg, sta, sit, wholeMap, RMap);
+
+            if (Object.keys(whole_dec_data).length > 0){
+              //yes, there is deception
+
+              if (!ret["whole_deception_"+sit][file]){
+                ret["whole_deception_"+sit][file] = {};
+              }
+
+              if (!ret["whole_deception_"+sit][file][sta+"-"+msg]){
+                ret["whole_deception_"+sit][file][sta+"-"+msg] = {};
+              }
+
+              for (var act in whole_dec_data){
+                ret["whole_deception_"+sit][file][sta+"-"+msg][act] = whole_dec_data[act];
+
+                if (act === 'a3'){
+                  if (!ret["whole_deception_"+sit+"_a3"][file]){
+                    ret["whole_deception_"+sit+"_a3"][file] = {};
+                  }
+                  ret["whole_deception_"+sit+"_a3"][file][sta+"-"+msg] = whole_dec_data[act];
+                }
+
+                //Whole deception from conscious?
+                for (var repi = 0; repi < states; repi++){
+                  maybe_both = false;
+                  maybe_neither = true;
+
+                  //might this representation be part of the chain?
+                  if (!UMap[sta]["q"+repi]){
+                    continue;
+                  }
+
+                  //is there conscious misuse?
+                  if ((ret["conscious_misuse_"+sit][file] || {})["q"+repi+"-"+msg]){
+                    maybe_both = true;
+                  }
+
+                  //was the misuse from the unconscious contribution?
+                  if ((ret["internal_misuse"][file] || []).some(function (item){return item.state === sta && item.representation === "q"+repi;})){
+                    if (maybe_both){
+                      if (!ret["whole_deception_"+sit+"_fromBoth"][file]){
+                        ret["whole_deception_"+sit+"_fromBoth"][file] = {};
+                      }
+                      ret["whole_deception_"+sit+"_fromBoth"][file][sta+"-q"+repi+"-"+msg+"-"+act] = 1;
+                    }
+                    else {
+                      if (!ret["whole_deception_"+sit+"_fromSelf"][file]){
+                        ret["whole_deception_"+sit+"_fromSelf"][file] = {};
+                      }
+                      ret["whole_deception_"+sit+"_fromSelf"][file][sta+"-q"+repi+"-"+msg+"-"+act] = 1;
+                    }
+                  }
+                  else if (maybe_both){
+                    if (!ret["whole_deception_"+sit+"_fromConscious"][file]){
+                      ret["whole_deception_"+sit+"_fromConscious"][file] = {};
+                    }
+                    ret["whole_deception_"+sit+"_fromConscious"][file][sta+"-q"+repi+"-"+msg+"-"+act] = 1;
+                  }
+                  else {
+                    if (!ret["whole_deception_"+sit+"_fromNeither"][file]){
+                      ret["whole_deception_"+sit+"_fromNeither"][file] = {};
+                    }
+                    ret["whole_deception_"+sit+"_fromNeither"][file][sta+"-q"+repi+"-"+msg+"-"+act] = 1;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+
+  }
+
   data.forEach(function (dup){
     if (!dup){
       console.error("No duplication object.");
@@ -172,67 +455,6 @@ function parseStats(data){
 
     mostlyTrueRep(dup.data.UMap, dup.file);
     totallyTrueRep(dup.data.UMap, dup.file);
-
-    var key;
-
-    for (key in dup.data.UMap){
-
-      //Internal mixing? is there a mixed strategy of representation?
-      if (Object.keys(dup.data.UMap[key]).length > 1 && _.filter(Object.keys(dup.data.UMap[key]), function (k){return dup.data.UMap[key][k] > 0.005}).length > 1){
-        if (!ret.mixed_strat_rep[dup.file]){
-          ret.mixed_strat_rep[dup.file] = [];
-        }
-
-        ret.mixed_strat_rep[dup.file].push(key);
-      }
-    }
-
-    //External mixing in s0?
-    for (key in dup.data.CMap['s0']){
-      //is there a mixed strategy of representation?
-      if (Object.keys(dup.data.CMap['s0'][key]).length > 1 && _.filter(Object.keys(dup.data.CMap['s0'][key]), function (k){return dup.data.CMap['s0'][key][k] > 0.005}).length > 1){
-        if (!ret.mixed_strat_s0[dup.file]){
-          ret.mixed_strat_s0[dup.file] = [];
-        }
-
-        ret.mixed_strat_s0[dup.file].push(key);
-      }
-    }
-
-    //External mixing in s1?
-    for (key in dup.data.CMap['s1']){
-      //is there a mixed strategy of representation?
-      if (Object.keys(dup.data.CMap['s1'][key]).length > 1 && _.filter(Object.keys(dup.data.CMap['s1'][key]), function (k){return dup.data.CMap['s1'][key][k] > 0.005}).length > 1){
-        if (!ret.mixed_strat_s1[dup.file]){
-          ret.mixed_strat_s1[dup.file] = [];
-        }
-
-        ret.mixed_strat_s1[dup.file].push(key);
-      }
-    }
-
-    //Inspection in s0?
-    for (key in dup.data.RMap['s0']){
-      //given key message, does the receiver inspect a fair bit?
-      if (dup.data.RMap['s0'][key]['a3'] && dup.data.RMap['s0'][key]['a3'] > 0.01){
-        if (!ret.inspecting_s0[dup.file]){
-          ret.inspecting_s0[dup.file] = [];
-        }
-
-        ret.inspecting_s0[dup.file].push([key, dup.data.RMap['s0'][key]['a3']])
-      }
-    }
-
-    //Inspection in s1?
-    for (key in dup.data.RMap['s1']){
-      if (dup.data.RMap['s1'][key]['a3'] && dup.data.RMap['s1'][key]['a3'] > 0.01){
-        if (!ret.inspecting_s1[dup.file]){
-          ret.inspecting_s1[dup.file] = [];
-        }
-
-        ret.inspecting_s1[dup.file].push([key, dup.data.RMap['s1'][key]['a3']])
-      }
-    }
 
     //Not all mostly true?
     if (!ret.all_mostly_true_rep[dup.file]){
@@ -244,236 +466,17 @@ function parseStats(data){
       ret.not_totally_true_rep[dup.file] = ret.totally_true_rep[dup.file] || [];
     }
 
+    internalMixing(dup.data.UMap, dup.file);
+    externalMixing('s0', dup.data.CMap, dup.file);
+    externalMixing('s1', dup.data.CMap, dup.file);
+    inspecting('s0', dup.data.RMap, dup.file);
+    inspecting('s1', dup.data.RMap, dup.file);
+
     var base_payoffs = basePayoffs(params);
 
-    //Internal misuse? check for internal misuse of representations
-    var internal_analyzer = new sl.InformationAnalyzer(states, states, state_probs, {state: 'q', message: 'q'});
-    var sd_analyzer = new sl.SelfDeceptionAnalyzer(states, messages, actions, situations, params.p, 1.0-params.o, base_payoffs, dup.data.RMap);
-    var pure_sender_strats = internal_analyzer.generatePureSenderStrategies(dup.data.UMap);
-    var misuse;
-    for (var st in dup.data.UMap){
-      for (var r in dup.data.UMap[st]){
-        misuse = false;
-        pure_sender_strats.forEach(function (sender_data){
-          if (internal_analyzer.misuse(sender_data, dup.data.UMap, r, st)){
-            if (!ret.internal_misuse[dup.file]){
-              ret.internal_misuse[dup.file] = []
-            }
-
-            ret.internal_misuse[dup.file].push({sender_strat: sender_data, state: st, representation: r, probability: dup.data.UMap[st][r]});
-            misuse = true;
-          }
-        });
-
-        if (misuse){
-          //Self-Deception? there is misuse -- check for self-deception
-          var sit_dec_data = sd_analyzer.deceptionOnMessagesAndSituations(r, st, dup.data.UMap, dup.data.CMap);
-          if (Object.keys(sit_dec_data).length > 0){
-            for (var sitkey in sit_dec_data){
-              if (!ret["self_deception_"+sitkey][dup.file]){
-                ret["self_deception_"+sitkey][dup.file] = [];
-              }
-
-              ret["self_deception_"+sitkey][dup.file].push({state: st, representation: r, messages: sit_dec_data[sitkey]});
-            }
-          }
-        }
-      }
-    }
-
-    //External misuse? check for other-deception
-    var st;
-    var rep_probs = {'q0': 0.0, 'q1': 0.0, 'q2': 0.0};
-    for (st in dup.data.UMap){
-      for (var r in dup.data.UMap[st]){
-        rep_probs[r] += dup.data.UMap[st][r] * state_probs[st];
-      }
-    }
-
-
-    var sit, siti, stai;
-    var pure_sender_strats, whole_pure_sender_strats;
-    var sta, rep, msg;
-    var misuse_rep_msg;
-    var push_data;
-    var external_analyzer = new sl.InformationAnalyzer(states, messages, rep_probs, {state: 'q', message: 'm'});
-    var whole_analyzer = new sl.InformationAnalyzer(states, messages, state_probs, {state: 'q', message: 'm'});
-    var dec_analyzer = new sl.ExtDeceptionAnalyzer(states, messages, actions, situations, params.p, params.c, base_payoffs);
-    var whole_dec_analyzer = new sl.ExtDeceptionAnalyzer(states, messages, actions, situations, params.p, params.c, base_payoffs);
-
-    var wholeMap = {s0: {}, s1: {}};
-    for (siti = 0; siti < situations; siti++){
-      sit = 's'+siti;
-
-      for (var ustate in dup.data.UMap){
-        wholeMap[sit][ustate] = wholeMap[sit][ustate] || {};
-        for (var urep in dup.data.UMap[ustate]){
-          for (var cmsg in dup.data.CMap[sit][urep]){
-            wholeMap[sit][ustate][cmsg] = (wholeMap[sit][ustate][cmsg] || 0) + dup.data.UMap[ustate][urep] * dup.data.CMap[sit][urep][cmsg];
-          }
-        }
-      }
-    }
-
-    for (siti = 0; siti < situations; siti++){
-      sit = 's'+siti;
-      pure_sender_strats = external_analyzer.generatePureSenderStrategies(dup.data.CMap[sit]);
-
-      for (rep in dup.data.CMap[sit]){
-        for (msg in dup.data.CMap[sit][rep]){
-          misuse_rep_msg = pure_sender_strats.some(function (sender_data){
-            if (external_analyzer.misuse(sender_data, dup.data.CMap[sit], msg, rep)){
-              return true;
-            }
-          });
-
-          if (misuse_rep_msg){
-            if (!ret["conscious_misuse_"+sit][dup.file]){
-              ret["conscious_misuse_"+sit][dup.file] = {}
-            }
-
-            ret["conscious_misuse_"+sit][dup.file][rep+"-"+msg] = dup.data.CMap[sit][rep][msg];
-            // ret["conscious_misuse_"+sit][dup.file].push({sender_strat: sender_data, representation: rep, message: msg, probability: dup.data.CMap[sit][rep][msg]});
-
-            //External deception? there is misuse -- check for deception
-            for (stai = 0; stai < states; stai++){
-              st = 'q'+stai;
-              //that representation is used in that state
-              if (dup.data.UMap[st][rep] > 0.0){
-                var dec_data = dec_analyzer.deception(msg, st, sit, dup.data.CMap, dup.data.RMap);
-
-                //console.log(dec_data);
-
-                if (Object.keys(dec_data).length > 0){
-                  //yes, there is deception
-
-                  if (!ret["conscious_deception_"+sit][dup.file]){
-                    ret["conscious_deception_"+sit][dup.file] = {};
-                  }
-            
-                  if (!ret["conscious_deception_"+sit][dup.file][st+"-"+rep+"-"+msg]){
-                    ret["conscious_deception_"+sit][dup.file][st+"-"+rep+"-"+msg] = {};
-                  }
-
-                  for (var act in dec_data){
-                    ret["conscious_deception_"+sit][dup.file][st+"-"+rep+"-"+msg][act] = dec_data[act];
-
-                    //Deception when correctly inspecting?
-                    // is this a case of inspecting and is the inspection correct?
-                    if (act === "a3" && dec_data[act]['a'+rep.substring(1)]){
-                      if (!ret["conscious_deception_"+sit+"_a3_correct"][dup.file]){
-                        ret["conscious_deception_"+sit+"_a3_correct"][dup.file] = [];
-                      }
-
-                      push_data = {state: st, representation: rep, message: msg, a3action: 'a'+rep.substring(1)};
-                      ret["conscious_deception_"+sit+"_a3_correct"][dup.file].push(push_data);
-
-                      //Self-and-other deception?
-                      //if (_.filter(ret["self_deception_"+sit][dup.file], function (sditem){ return sditem.state === st && sditem.representation === r}).length){
-                      if (_.filter(ret["self_deception_"+sit][dup.file], function (sditem){ return sditem.representation === r}).length){
-                        if (!ret["conscious_deception_"+sit+"_a3_correct_self"][dup.file]){
-                          ret["conscious_deception_"+sit+"_a3_correct_self"][dup.file] = [];
-                        }
-
-                        ret["conscious_deception_"+sit+"_a3_correct_self"][dup.file].push(push_data);
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-
-      //Whole misuse?
-      whole_pure_sender_strats = whole_analyzer.generatePureSenderStrategies(wholeMap[sit]);
-      for (sta in wholeMap[sit]){
-        for (msg in wholeMap[sit][sta]){
-          misuse_sta_msg = whole_pure_sender_strats.some(function (sender_data){
-            if (whole_analyzer.misuse(sender_data, wholeMap[sit], msg, sta)){
-              return true;
-            }
-          });
-
-          if (misuse_sta_msg){
-            if (!ret["whole_misuse_"+sit][dup.file]){
-              ret["whole_misuse_"+sit][dup.file] = {}
-            }
-
-            ret["whole_misuse_"+sit][dup.file][sta+"-"+msg] = wholeMap[sit][sta][msg];
-
-            //Whole deception? there is misuse -- check for deception
-            var whole_dec_data = whole_dec_analyzer.deception(msg, sta, sit, wholeMap, dup.data.RMap);
-
-            if (Object.keys(whole_dec_data).length > 0){
-              //yes, there is deception
-
-              if (!ret["whole_deception_"+sit][dup.file]){
-                ret["whole_deception_"+sit][dup.file] = {};
-              }
-
-              if (!ret["whole_deception_"+sit][dup.file][sta+"-"+msg]){
-                ret["whole_deception_"+sit][dup.file][sta+"-"+msg] = {};
-              }
-
-              for (var act in whole_dec_data){
-                ret["whole_deception_"+sit][dup.file][sta+"-"+msg][act] = whole_dec_data[act];
-
-                if (act === 'a3'){
-                  if (!ret["whole_deception_"+sit+"_a3"][dup.file]){
-                    ret["whole_deception_"+sit+"_a3"][dup.file] = {};
-                  }
-                  ret["whole_deception_"+sit+"_a3"][dup.file][sta+"-"+msg] = whole_dec_data[act];
-                }
-
-                //Whole deception from conscious?
-                for (var repi = 0; repi < states; repi++){
-                  var maybe_both = false;
-                  var maybe_neither = true;
-
-                  //might this representation be part of the chain?
-                  if (!dup.data.UMap[sta]["q"+repi]){
-                    continue;
-                  }
-
-                  //is there conscious misuse?
-                  if ((ret["conscious_misuse_"+sit][dup.file] || {})["q"+repi+"-"+msg]){
-                    maybe_both = true;
-                    maybe_neither = false;
-                    if (!ret["whole_deception_"+sit+"_fromConscious"][dup.file]){
-                      ret["whole_deception_"+sit+"_fromConscious"][dup.file] = {};
-                    }
-                    ret["whole_deception_"+sit+"_fromConscious"][dup.file][sta+"-q"+repi+"-"+msg+"-"+act] = 1;
-                  }
-
-                  //was the misuse from the unconscious contribution?
-                  if ((ret["internal_misuse"][dup.file] || []).some(function (item){return item.state === sta && item.representation === "q"+repi;}).length){
-                    if (!ret["whole_deception_"+sit+"_fromSelf"][dup.file]){
-                      ret["whole_deception_"+sit+"_fromSelf"][dup.file] = {};
-                    }
-                    ret["whole_deception_"+sit+"_fromSelf"][dup.file][sta+"-q"+repi+"-"+msg+"-"+act] = 1;
-
-                    if (maybe_both){
-                      if (!ret["whole_deception_"+sit+"_fromBoth"][dup.file]){
-                        ret["whole_deception_"+sit+"_fromBoth"][dup.file] = {};
-                      }
-                      ret["whole_deception_"+sit+"_fromBoth"][dup.file][sta+"-q"+repi+"-"+msg+"-"+act] = 1;
-                    }
-                  }
-                  else if (maybe_neither){
-                    if (!ret["whole_deception_"+sit+"_fromNeither"][dup.file]){
-                      ret["whole_deception_"+sit+"_fromNeither"][dup.file] = {};
-                    }
-                    ret["whole_deception_"+sit+"_fromNeither"][dup.file][sta+"-q"+repi+"-"+msg+"-"+act] = 1;
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+    internalMisuseDeception(base_payoffs, params, dup.file, dup.data.UMap, dup.data.CMap, dup.data.RMap);
+    consciousMisuseDeception(base_payoffs, params, dup.file, dup.data.UMap, dup.data.CMap, dup.data.RMap);
+    wholeMisuseDeception(base_payoffs, params, dup.file, dup.data.UMap, dup.data.CMap, dup.data.RMap);
 
   });
 

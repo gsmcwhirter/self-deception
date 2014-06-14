@@ -74,6 +74,8 @@ function parseStats(data){
   , internal_misuse: {} //Internal misuse?
   , self_deception_s0: {} //Self-Deception? (loop)
   , self_deception_s1: {} //Self-Deception? (loop)
+  , self_deception_s0_a3_correct: {}
+  , self_deception_s1_a3_correct: {}
   , conscious_misuse_s0: {} //External misuse? (loop)
   , conscious_misuse_s1: {} //External misuse? (loop)
   , conscious_deception_s0: {} //External deception? (loop)
@@ -96,6 +98,8 @@ function parseStats(data){
   , whole_deception_s1_fromBoth: {}
   , whole_deception_s0_fromNeither: {}
   , whole_deception_s1_fromNeither: {}
+  , pct_inspecting_s0: {}
+  , pct_inspecting_s1: {}
   };
 
   function determineParameters(dup){
@@ -190,15 +194,36 @@ function parseStats(data){
     }
   }
 
-  function inspecting(sit, RMap, file){
-    for (var key in RMap[sit]){
+  function inspecting(sit, UMap, CMap, RMap, file){
+    var rep, state, prob_msg;
+    for (var msg in RMap[sit]){
       //given key message, does the receiver inspect a fair bit?
-      if (RMap[sit][key]['a3'] && RMap[sit][key]['a3'] > 0.01){
-        if (!ret["inspecting_"+sit][file]){
-          ret["inspecting_"+sit][file] = [];
+      if (RMap[sit][msg]['a3']){
+        if (RMap[sit][msg]['a3'] > 0.01){
+          if (!ret["inspecting_"+sit][file]){
+            ret["inspecting_"+sit][file] = [];
+          }
+
+          ret["inspecting_"+sit][file].push([msg, RMap[sit][msg]['a3']]);
         }
 
-        ret["inspecting_"+sit][file].push([key, RMap[sit][key]['a3']]);
+        prob_msg = 0.0;
+
+        for (rep in CMap[sit]){
+          if (CMap[sit][rep][msg]){
+            for (state in UMap){
+              if (UMap[state][rep]){
+                prob_msg += UMap[state][rep] * CMap[sit][rep][msg] * state_probs[state];
+              }
+            }
+          }
+        }
+
+        if (!ret["pct_inspecting_"+sit][file]){
+          ret["pct_inspecting_"+sit][file] = 0.0;
+        }
+
+        ret["pct_inspecting_"+sit][file] += prob_msg * RMap[sit][msg]['a3'];
       }
     }
   }
@@ -469,8 +494,8 @@ function parseStats(data){
     internalMixing(dup.data.UMap, dup.file);
     externalMixing('s0', dup.data.CMap, dup.file);
     externalMixing('s1', dup.data.CMap, dup.file);
-    inspecting('s0', dup.data.RMap, dup.file);
-    inspecting('s1', dup.data.RMap, dup.file);
+    inspecting('s0', dup.data.UMap, dup.data.CMap, dup.data.RMap, dup.file);
+    inspecting('s1', dup.data.UMap, dup.data.CMap, dup.data.RMap, dup.file);
 
     var base_payoffs = basePayoffs(params);
 
@@ -482,7 +507,16 @@ function parseStats(data){
 
   var counts = {};
   for (var stat in ret){
-    counts[stat] = _.filter(Object.keys(ret[stat]), function (statline){return statline !== 0 && !_.isEmpty(statline);}).length;
+    if (["pct_inspecting_s0", "pct_inspecting_s1"].indexOf(stat) === -1){
+      counts[stat] = _.filter(Object.keys(ret[stat]), function (statline){return statline !== 0 && !_.isEmpty(statline);}).length;
+    }
+    else {
+      var slen = _.filter(Object.keys(ret[stat]), function (statline){return statline !== 0 && !_.isEmpty(statline);}).length;
+      counts[stat] = 0;
+      for (var file in ret[stat]){
+        counts[stat] += ret[stat][file] / slen;
+      }
+    }
   }
 
   return [counts,ret];

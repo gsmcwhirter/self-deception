@@ -240,7 +240,10 @@ function execNextTask(){
               , "whole_deception_s1_fromConscious"
               , "whole_deception_s1_fromSelf"
               , "whole_deception_s1_fromBoth"
-              , "whole_deception_s1_fromNeither"].forEach(function (mt1){
+              , "whole_deception_s1_fromNeither"
+              , "pct_inspecting_s0"
+              , "pct_inspecting_s1"
+              ].forEach(function (mt1){
                 var mt2 = ((mtask[0] === 1) ? "data" : "counts") + "." + mt1;
                 if (!metadata[mt2]){
                   metadata[mt2] = {};

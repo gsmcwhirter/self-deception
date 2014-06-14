@@ -35,7 +35,9 @@
     "whole_deception_s0_fromBoth": 0,
     "whole_deception_s1_fromBoth": 56,
     "whole_deception_s0_fromNeither": 0,
-    "whole_deception_s1_fromNeither": 2
+    "whole_deception_s1_fromNeither": 2,
+    "pct_inspecting_s0": 0,
+    "pct_inspecting_s1": 0.0003171928795904185
   },
   {
     "mostly_true_rep": {
@@ -83473,6 +83475,11 @@
       "p_0.1_c_0.6.dir/duplication_82.out": {
         "q1-q1-m1-a0": 1
       }
+    },
+    "pct_inspecting_s0": {},
+    "pct_inspecting_s1": {
+      "p_0.1_c_0.6.dir/duplication_443.out": 0.0002930843062235103,
+      "p_0.1_c_0.6.dir/duplication_489.out": 0.0003413014529573268
     }
   }
 ]

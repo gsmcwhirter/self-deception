@@ -35,7 +35,9 @@
     "whole_deception_s0_fromBoth": 0,
     "whole_deception_s1_fromBoth": 58,
     "whole_deception_s0_fromNeither": 0,
-    "whole_deception_s1_fromNeither": 0
+    "whole_deception_s1_fromNeither": 0,
+    "pct_inspecting_s0": 0.000319315685761756,
+    "pct_inspecting_s1": 0.0006306526150445399
   },
   {
     "mostly_true_rep": {
@@ -84102,6 +84104,26 @@
       }
     },
     "whole_deception_s0_fromNeither": {},
-    "whole_deception_s1_fromNeither": {}
+    "whole_deception_s1_fromNeither": {},
+    "pct_inspecting_s0": {
+      "p_0.1_c_0.5.dir/duplication_269.out": 0.00039796966711981476,
+      "p_0.1_c_0.5.dir/duplication_536.out": 0.00024066170440369724
+    },
+    "pct_inspecting_s1": {
+      "p_0.1_c_0.5.dir/duplication_137.out": 0.0005576377496629742,
+      "p_0.1_c_0.5.dir/duplication_155.out": 0.0008747564507306642,
+      "p_0.1_c_0.5.dir/duplication_16.out": 0.0005579832538121896,
+      "p_0.1_c_0.5.dir/duplication_197.out": 0.0009436962948155348,
+      "p_0.1_c_0.5.dir/duplication_226.out": 0.0005906953915814068,
+      "p_0.1_c_0.5.dir/duplication_523.out": 0.001165404783026107,
+      "p_0.1_c_0.5.dir/duplication_542.out": 0.0005431466619672192,
+      "p_0.1_c_0.5.dir/duplication_60.out": 0.0006477202778812002,
+      "p_0.1_c_0.5.dir/duplication_650.out": 0.00015588566027750184,
+      "p_0.1_c_0.5.dir/duplication_674.out": 0.0002068335272153258,
+      "p_0.1_c_0.5.dir/duplication_681.out": 0.0003272409020892896,
+      "p_0.1_c_0.5.dir/duplication_701.out": 0.0009745184688976163,
+      "p_0.1_c_0.5.dir/duplication_856.out": 0.00011990577177448323,
+      "p_0.1_c_0.5.dir/duplication_899.out": 0.0011637114168920471
+    }
   }
 ]

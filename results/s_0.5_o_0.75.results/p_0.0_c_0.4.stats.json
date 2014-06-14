@@ -35,7 +35,9 @@
     "whole_deception_s0_fromBoth": 0,
     "whole_deception_s1_fromBoth": 59,
     "whole_deception_s0_fromNeither": 0,
-    "whole_deception_s1_fromNeither": 2
+    "whole_deception_s1_fromNeither": 2,
+    "pct_inspecting_s0": 0.000494538272502615,
+    "pct_inspecting_s1": 0.0009426978076056482
   },
   {
     "mostly_true_rep": {
@@ -85499,6 +85501,36 @@
       "p_0.0_c_0.4.dir/duplication_398.out": {
         "q1-q1-m2-a0": 1
       }
+    },
+    "pct_inspecting_s0": {
+      "p_0.0_c_0.4.dir/duplication_314.out": 0.0009237987546523123,
+      "p_0.0_c_0.4.dir/duplication_450.out": 0.00006527779035291757
+    },
+    "pct_inspecting_s1": {
+      "p_0.0_c_0.4.dir/duplication_108.out": 0.00009527155940080586,
+      "p_0.0_c_0.4.dir/duplication_116.out": 0.0002733520442608582,
+      "p_0.0_c_0.4.dir/duplication_129.out": 0.00016532133856792992,
+      "p_0.0_c_0.4.dir/duplication_131.out": 0.003780857800726681,
+      "p_0.0_c_0.4.dir/duplication_168.out": 0.0011817755673496429,
+      "p_0.0_c_0.4.dir/duplication_176.out": 0.0014564146601795495,
+      "p_0.0_c_0.4.dir/duplication_187.out": 0.0014663978325984393,
+      "p_0.0_c_0.4.dir/duplication_252.out": 0.000535839315182077,
+      "p_0.0_c_0.4.dir/duplication_254.out": 0.0001418751227179761,
+      "p_0.0_c_0.4.dir/duplication_332.out": 0.001430655189683715,
+      "p_0.0_c_0.4.dir/duplication_349.out": 0.0011318873002581834,
+      "p_0.0_c_0.4.dir/duplication_394.out": 0.00023114469852660588,
+      "p_0.0_c_0.4.dir/duplication_428.out": 0.00020182646657638734,
+      "p_0.0_c_0.4.dir/duplication_506.out": 0.00048294543889141684,
+      "p_0.0_c_0.4.dir/duplication_532.out": 0.001731978270680096,
+      "p_0.0_c_0.4.dir/duplication_551.out": 0.00162838448472452,
+      "p_0.0_c_0.4.dir/duplication_640.out": 0.0009557171617358075,
+      "p_0.0_c_0.4.dir/duplication_643.out": 0.0004449877493171249,
+      "p_0.0_c_0.4.dir/duplication_72.out": 0.0005243892424285044,
+      "p_0.0_c_0.4.dir/duplication_761.out": 0.00028424507338765297,
+      "p_0.0_c_0.4.dir/duplication_78.out": 0.0011962368816861775,
+      "p_0.0_c_0.4.dir/duplication_855.out": 0.0011740885482199206,
+      "p_0.0_c_0.4.dir/duplication_910.out": 0.0003007215186864859,
+      "p_0.0_c_0.4.dir/duplication_971.out": 0.0018084341167489996
     }
   }
 ]

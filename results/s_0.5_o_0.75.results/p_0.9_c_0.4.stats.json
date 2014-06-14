@@ -35,7 +35,9 @@
     "whole_deception_s0_fromBoth": 0,
     "whole_deception_s1_fromBoth": 64,
     "whole_deception_s0_fromNeither": 0,
-    "whole_deception_s1_fromNeither": 3
+    "whole_deception_s1_fromNeither": 3,
+    "pct_inspecting_s0": 0.0008338019677274631,
+    "pct_inspecting_s1": 0.0009422217084600854
   },
   {
     "mostly_true_rep": {
@@ -85012,6 +85014,43 @@
         "q1-q0-m0-a0": 1,
         "q1-q0-m2-a0": 1
       }
+    },
+    "pct_inspecting_s0": {
+      "p_0.9_c_0.4.dir/duplication_173.out": 0.0002064392084690785,
+      "p_0.9_c_0.4.dir/duplication_865.out": 0.0014611647269858476
+    },
+    "pct_inspecting_s1": {
+      "p_0.9_c_0.4.dir/duplication_1.out": 0.00047063744521410103,
+      "p_0.9_c_0.4.dir/duplication_153.out": 0.00028828542182875985,
+      "p_0.9_c_0.4.dir/duplication_191.out": 0.0013177955033259678,
+      "p_0.9_c_0.4.dir/duplication_224.out": 0.0003355242975351821,
+      "p_0.9_c_0.4.dir/duplication_234.out": 0.0025323479339939025,
+      "p_0.9_c_0.4.dir/duplication_251.out": 0.0011442620687178923,
+      "p_0.9_c_0.4.dir/duplication_28.out": 0.00018425285210447567,
+      "p_0.9_c_0.4.dir/duplication_304.out": 0.002095880763550684,
+      "p_0.9_c_0.4.dir/duplication_329.out": 0.0020269871072878536,
+      "p_0.9_c_0.4.dir/duplication_351.out": 0.00017147974230802602,
+      "p_0.9_c_0.4.dir/duplication_375.out": 0.0002166882569711609,
+      "p_0.9_c_0.4.dir/duplication_377.out": 0.0015147814053735205,
+      "p_0.9_c_0.4.dir/duplication_483.out": 0.0001305208855896103,
+      "p_0.9_c_0.4.dir/duplication_523.out": 0.0001589437470509187,
+      "p_0.9_c_0.4.dir/duplication_585.out": 0.0002781512390980424,
+      "p_0.9_c_0.4.dir/duplication_617.out": 0.0017813005338491613,
+      "p_0.9_c_0.4.dir/duplication_634.out": 0.00045996381971656684,
+      "p_0.9_c_0.4.dir/duplication_640.out": 0.00106055837984579,
+      "p_0.9_c_0.4.dir/duplication_650.out": 0.0009046042767406886,
+      "p_0.9_c_0.4.dir/duplication_67.out": 0.001963942235253182,
+      "p_0.9_c_0.4.dir/duplication_747.out": 0.000872034487742486,
+      "p_0.9_c_0.4.dir/duplication_794.out": 0.002319685404416003,
+      "p_0.9_c_0.4.dir/duplication_8.out": 0.0005261203927744931,
+      "p_0.9_c_0.4.dir/duplication_805.out": 0.0009351434700812863,
+      "p_0.9_c_0.4.dir/duplication_874.out": 0.0006961385572056755,
+      "p_0.9_c_0.4.dir/duplication_921.out": 0.0018037993817146686,
+      "p_0.9_c_0.4.dir/duplication_952.out": 0.00027787913906620525,
+      "p_0.9_c_0.4.dir/duplication_966.out": 0.0004371103386120027,
+      "p_0.9_c_0.4.dir/duplication_968.out": 0.0019370220542727446,
+      "p_0.9_c_0.4.dir/duplication_989.out": 0.00018492689305287893,
+      "p_0.9_c_0.4.dir/duplication_997.out": 0.00018210492796871396
     }
   }
 ]

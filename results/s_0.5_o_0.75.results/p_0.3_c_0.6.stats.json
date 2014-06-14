@@ -35,7 +35,9 @@
     "whole_deception_s0_fromBoth": 0,
     "whole_deception_s1_fromBoth": 65,
     "whole_deception_s0_fromNeither": 0,
-    "whole_deception_s1_fromNeither": 2
+    "whole_deception_s1_fromNeither": 2,
+    "pct_inspecting_s0": 0.00007081100021542468,
+    "pct_inspecting_s1": 0.0008045994875681827
   },
   {
     "mostly_true_rep": {
@@ -83397,6 +83399,39 @@
       "p_0.3_c_0.6.dir/duplication_860.out": {
         "q1-q1-m1-a0": 1
       }
+    },
+    "pct_inspecting_s0": {
+      "p_0.3_c_0.6.dir/duplication_25.out": 0.00007081100021542468
+    },
+    "pct_inspecting_s1": {
+      "p_0.3_c_0.6.dir/duplication_148.out": 0.00009850736616721558,
+      "p_0.3_c_0.6.dir/duplication_160.out": 0.0002678076726130649,
+      "p_0.3_c_0.6.dir/duplication_188.out": 0.0012458501417110482,
+      "p_0.3_c_0.6.dir/duplication_233.out": 0.001934962986846904,
+      "p_0.3_c_0.6.dir/duplication_240.out": 0.00007642947249437493,
+      "p_0.3_c_0.6.dir/duplication_245.out": 0.0002452236488281169,
+      "p_0.3_c_0.6.dir/duplication_288.out": 0.0022165534901911685,
+      "p_0.3_c_0.6.dir/duplication_313.out": 0.0007935218048545985,
+      "p_0.3_c_0.6.dir/duplication_329.out": 0.0002776396167243675,
+      "p_0.3_c_0.6.dir/duplication_331.out": 0.00017951489603591463,
+      "p_0.3_c_0.6.dir/duplication_339.out": 0.0004113577528307986,
+      "p_0.3_c_0.6.dir/duplication_349.out": 0.00041104901330690113,
+      "p_0.3_c_0.6.dir/duplication_370.out": 0.000147529606087376,
+      "p_0.3_c_0.6.dir/duplication_400.out": 0.00008191677065125863,
+      "p_0.3_c_0.6.dir/duplication_415.out": 0.00036214546639213116,
+      "p_0.3_c_0.6.dir/duplication_425.out": 0.0007055086404375489,
+      "p_0.3_c_0.6.dir/duplication_530.out": 0.00026539640525633044,
+      "p_0.3_c_0.6.dir/duplication_637.out": 0.0008046158904220436,
+      "p_0.3_c_0.6.dir/duplication_652.out": 0.000027982314591942934,
+      "p_0.3_c_0.6.dir/duplication_653.out": 0.00040150601693995035,
+      "p_0.3_c_0.6.dir/duplication_680.out": 0.000051661314076602297,
+      "p_0.3_c_0.6.dir/duplication_700.out": 0.0003868688319633293,
+      "p_0.3_c_0.6.dir/duplication_836.out": 0.0014870442618223516,
+      "p_0.3_c_0.6.dir/duplication_854.out": 0.00038562155203710293,
+      "p_0.3_c_0.6.dir/duplication_865.out": 0.0012034383414757748,
+      "p_0.3_c_0.6.dir/duplication_872.out": 0.003337954386441504,
+      "p_0.3_c_0.6.dir/duplication_925.out": 0.0032898384883721225,
+      "p_0.3_c_0.6.dir/duplication_940.out": 0.0014313395023372746
     }
   }
 ]

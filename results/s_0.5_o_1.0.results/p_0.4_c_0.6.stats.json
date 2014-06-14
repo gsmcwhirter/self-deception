@@ -35,7 +35,9 @@
     "whole_deception_s0_fromBoth": 0,
     "whole_deception_s1_fromBoth": 413,
     "whole_deception_s0_fromNeither": 0,
-    "whole_deception_s1_fromNeither": 77
+    "whole_deception_s1_fromNeither": 77,
+    "pct_inspecting_s0": 0.000025265847664062047,
+    "pct_inspecting_s1": 0.0005630338822697145
   },
   {
     "mostly_true_rep": {
@@ -143222,6 +143224,23 @@
         "q1-q0-m1-a0": 1,
         "q1-q0-m2-a0": 1
       }
+    },
+    "pct_inspecting_s0": {
+      "p_0.4_c_0.6.dir/duplication_683.out": 0.00003708005270461922,
+      "p_0.4_c_0.6.dir/duplication_794.out": 0.000013451642623504876
+    },
+    "pct_inspecting_s1": {
+      "p_0.4_c_0.6.dir/duplication_158.out": 0.0009004378854408084,
+      "p_0.4_c_0.6.dir/duplication_23.out": 0.000114034488645649,
+      "p_0.4_c_0.6.dir/duplication_286.out": 0.00044659357722799995,
+      "p_0.4_c_0.6.dir/duplication_561.out": 0.00022530393195932584,
+      "p_0.4_c_0.6.dir/duplication_702.out": 0,
+      "p_0.4_c_0.6.dir/duplication_730.out": 0.003266097404568172,
+      "p_0.4_c_0.6.dir/duplication_761.out": 0.0004067373697766765,
+      "p_0.4_c_0.6.dir/duplication_808.out": 0.00021193665138523972,
+      "p_0.4_c_0.6.dir/duplication_840.out": 0.00011402301294481397,
+      "p_0.4_c_0.6.dir/duplication_89.out": 0.00045913761842476526,
+      "p_0.4_c_0.6.dir/duplication_954.out": 0.000049070764593408555
     }
   }
 ]

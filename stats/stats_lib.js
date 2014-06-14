@@ -433,7 +433,9 @@ ExtDeceptionAnalyzer.prototype.deception = function (msg, state, sit, c_maps, r_
         if (rand_act === 'a3') return;
 
         var actual_payoffs = _.clone(self.cr_payoffs[sit][state][rand_act]);
-        actual_payoffs[2] -= self.inspect_cost;
+        if (actual_payoffs[2] !== 0){
+          actual_payoffs[2] -= self.inspect_cost;
+        }
 
         var tmp = _real_deception(best_actions, actual_payoffs);
 

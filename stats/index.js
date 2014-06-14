@@ -1,6 +1,6 @@
 var path = require("path")
   , args = require("optimist")
-      .usage("$0 [--generator] [--parser] --meta <types> --dir <results_dir> --pmin <p_min> --pmax <p_max> --pstep <p_step> --cmin <c_min> --cmax <c_max> --cstep <c_step> --omin <o_min> --omax <o_max> --ostep <o_step> --smin <s_min> --smax <s_max> --sstep <s_step>")
+      .usage("$0 [--generator] [--parser] [--fake] --meta <types> --dir <results_dir> --pmin <p_min> --pmax <p_max> --pstep <p_step> --cmin <c_min> --cmax <c_max> --cstep <c_step> --omin <o_min> --omax <o_max> --ostep <o_step> --smin <s_min> --smax <s_max> --sstep <s_step>")
       .demand(["dir"])
       .alias({"dir": "d", "script": "s", "iterations": "i", "duplications": "N", "threads": "M", "generator": "g", "parser": "p", "meta":"m", "verbose": "v"})
       .default("pmin", 0.0)
@@ -18,6 +18,7 @@ var path = require("path")
       .boolean("generator")
       .boolean("parser")
       .boolean("verbose")
+      .boolean("fake")
       .describe({ "dir": "The directory to output the results to."
                 , "pmin": "The minimum p value (inclusive)."
                 , "pmax": "The maximum p value."
@@ -38,6 +39,7 @@ var path = require("path")
       .argv
   , fs = require("fs")
   , cp = require("child_process")
+  , csv = require("csv-write-stream")
   , script_path = ""
   , tasks = []
   , metadata = {}
@@ -198,6 +200,78 @@ function execNextTask(){
 
   console.log("Running node %s in %s", task.args.join(" "), task.odir);
 
+  var doMeta = function(){
+    if (args.meta && task.parser){
+      var mrdir = path.join(task.odir, task.resultfile);
+
+      var results;
+      try {
+        results = fs.readFileSync(path.resolve(mrdir), {encoding: "utf8"});
+        results = JSON.parse(results);
+      } catch (e) {
+        results = null;
+      }
+
+      if (results !== null){
+        try {
+          metatasks.forEach(function (mtask){
+            if (mtask[1] === "*"){
+              for (var mt1 in results[mtask[0]]){
+                var mt2 = ((mtask[0] === 1) ? "data" : "counts") + "." + mt1;
+                if (!metadata[mt2]){
+                  metadata[mt2] = {};
+                }
+
+                metadata[mt2][mrdir] = results[mtask[0]][mt1];
+              }
+            }
+            else if (mtask[1] === "[default]"){
+              [ "all_mostly_true_rep"
+              , "all_totally_true_rep"
+              , "inspecting_s0"
+              , "inspecting_s1"
+              , "self_deception_s0"
+              , "self_deception_s1"
+              , "conscious_deception_s1"
+              , "conscious_deception_s1_a3_correct"
+              , "conscious_deception_s1_a3_correct_self"
+              , "whole_deception_s1"
+              , "whole_deception_s1_a3"
+              , "whole_deception_s1_fromConscious"
+              , "whole_deception_s1_fromSelf"
+              , "whole_deception_s1_fromBoth"
+              , "whole_deception_s1_fromNeither"].forEach(function (mt1){
+                var mt2 = ((mtask[0] === 1) ? "data" : "counts") + "." + mt1;
+                if (!metadata[mt2]){
+                  metadata[mt2] = {};
+                }
+
+                metadata[mt2][mrdir] = results[mtask[0]][mt1];
+              });
+            }
+            else {
+              if (!metadata[mtask[2]]){
+                metadata[mtask[2]] = {};
+              }
+
+              metadata[mtask[2]][mrdir] = results[mtask[0]][mtask[1]];
+            }
+          });
+        }
+        catch (e){
+          console.error(e);
+        }
+      }
+    }
+  };
+
+  if (args.fake){
+    doMeta();
+    //process.nextTick(execNextTask);
+    setImmediate(execNextTask);
+    return;
+  }
+
   cp.execFile("node", task.args, {
     cwd: path.resolve(task.odir)
   }, function (err, stdout, stderr){
@@ -210,72 +284,11 @@ function execNextTask(){
         console.log(stdout);
       }
 
-      if (args.meta && task.parser){
-        var mrdir = path.join(task.odir, task.resultfile);
-
-        var results;
-        try {
-          results = fs.readFileSync(path.resolve(mrdir), {encoding: "utf8"});
-          results = JSON.parse(results);
-          //results = require(path.resolve(mrdir));
-        } catch (e) {
-          results = null;
-        }
-
-        if (results !== null){
-          try {
-            metatasks.forEach(function (mtask){
-              if (mtask[1] === "*"){
-                for (var mt1 in results[mtask[0]]){
-                  var mt2 = ((mtask[0] === 1) ? "data" : "counts") + "." + mt1;
-                  if (!metadata[mt2]){
-                    metadata[mt2] = {};
-                  }
-
-                  metadata[mt2][mrdir] = results[mtask[0]][mt1];
-                }
-              }
-              else if (mtask[1] === "[default]"){
-                [ "all_mostly_true_rep"
-                , "all_totally_true_rep"
-                , "inspecting_s0"
-                , "inspecting_s1"
-                , "self_deception_s0"
-                , "self_deception_s1"
-                , "conscious_deception_s1"
-                , "conscious_deception_s1_a3_correct"
-                , "conscious_deception_s1_a3_correct_self"
-                , "whole_deception_s1"
-                , "whole_deception_s1_a3"
-                , "whole_deception_s1_fromConscious"
-                , "whole_deception_s1_fromSelf"
-                , "whole_deception_s1_fromBoth"
-                , "whole_deception_s1_fromNeither"].forEach(function (mt1){
-                  var mt2 = ((mtask[0] === 1) ? "data" : "counts") + "." + mt1;
-                  if (!metadata[mt2]){
-                    metadata[mt2] = {};
-                  }
-
-                  metadata[mt2][mrdir] = results[mtask[0]][mt1];
-                });
-              }
-              else {
-                if (!metadata[mtask[2]]){
-                  metadata[mtask[2]] = {};
-                }
-
-                metadata[mtask[2]][mrdir] = results[mtask[0]][mtask[1]];
-              }
-            });
-          }
-          catch (e){
-            console.error(e);
-          }
-        }
-      }
+      doMeta();
     }
 
-    process.nextTick(execNextTask);
+    //process.nextTick(execNextTask);
+    setImmediate(execNextTask);
 
     return;
   });
@@ -294,5 +307,83 @@ function whenDone(){
         console.log("Meta-Stats written successfully.");
       });
     });
+
+    var csvHeaders = ["o","p","c"];
+    var csvHeaders2 = ["s","p","c"];
+
+    function parseFilenameParams(str){
+      var ret = {s: null, p: null, c: null, o: null};
+      var matches = str.match(/s_(\d*\.\d*).*o_(\d*\.\d*).*p_(\d*\.\d*).*c_(\d*\.\d*)/i);
+
+      if (matches && matches.length){
+        ret.s = matches[1];
+        ret.o = matches[2];
+        ret.p = matches[3];
+        ret.c = matches[4];
+      }
+
+      return ret;
+    }
+
+    var csvData = {};
+    var csvData2 = {};
+
+    var seen_s_values;
+    var seen_o_values;
+    var mparams;
+    for (var mkey in metadata){
+      seen_s_values = [];
+      seen_o_values = [];
+
+      for (var fkey in metadata[mkey]){
+        mparams = parseFilenameParams(fkey);
+        if (!csvData[mparams.o+"-"+mparams.p+"-"+mparams.c]){
+          csvData[mparams.o+"-"+mparams.p+"-"+mparams.c] = {
+            o: mparams.o
+          , p: mparams.p
+          , c: mparams.c
+          };
+        }
+
+        if (!csvData2[mparams.s+"-"+mparams.p+"-"+mparams.c]){
+          csvData2[mparams.s+"-"+mparams.p+"-"+mparams.c] = {
+            s: mparams.s
+          , p: mparams.p
+          , c: mparams.c
+          };
+        }
+
+        if (seen_s_values.indexOf(mparams.s) === -1){
+          seen_s_values.push(mparams.s);
+          csvHeaders.push(mkey+" (s="+mparams.s+")");
+        }
+
+        if (seen_o_values.indexOf(mparams.o) === -1){
+          seen_o_values.push(mparams.o);
+          csvHeaders2.push(mkey+" (o="+mparams.o+")");
+        }
+
+        csvData[mparams.o+"-"+mparams.p+"-"+mparams.c][mkey+" (s="+mparams.s+")"] = metadata[mkey][fkey];
+        csvData2[mparams.s+"-"+mparams.p+"-"+mparams.c][mkey+" (o="+mparams.o+")"] = metadata[mkey][fkey];
+      }
+    }
+
+    var csvWriter = csv({headers: csvHeaders});
+    csvWriter.pipe(fs.createWriteStream(path.resolve(path.join(args.dir, "metaresults_opc.csv"))));
+
+    Object.keys(csvData).forEach(function (rowkey){
+      csvWriter.write(csvData[rowkey]);
+    });
+
+    csvWriter.end();
+
+    var csvWriter2 = csv({headers: csvHeaders2});
+    csvWriter2.pipe(fs.createWriteStream(path.resolve(path.join(args.dir, "metaresults_spc.csv"))));
+
+    Object.keys(csvData2).forEach(function (rowkey){
+      csvWriter2.write(csvData2[rowkey]);
+    });
+
+    csvWriter2.end();
   }
 }
